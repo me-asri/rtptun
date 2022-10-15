@@ -48,6 +48,7 @@ class RTPTunServer:
         self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
+        # TODO Seperate SSRCs based on peer address
         if not ssrc in self.ssrc_map:
             dsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             dsock.bind(('0.0.0.0', 0))
