@@ -1,6 +1,7 @@
 import socket
 import selectors
 import random
+from typing import Mapping
 
 import xor
 
@@ -34,10 +35,15 @@ class RTPTunClient:
 
         self.ssrc_map = {}
         self.addr_map = {}
+        self.con_map: Mapping[socket.socket, int] = {}
 
     def __lsock_callback(self, con: socket.socket, mask: int) -> None:
-        data_len, recv_addr = con.recvfrom_into(
-            self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
+        try:
+            data_len, recv_addr = con.recvfrom_into(
+                self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
+        except ConnectionResetError:
+
+            pass
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
 
