@@ -1,7 +1,9 @@
+from typing import Union
+
 MIN_KEY_LEN = 16
 
 
-def xor(buffer: bytearray | memoryview, key: str) -> None:
+def xor(buffer: Union[bytearray, memoryview], key: str) -> None:
     key_bytes = key.encode()
 
     buffer_len = len(buffer)

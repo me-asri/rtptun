@@ -1,6 +1,8 @@
 import ctypes as ct
 import socket
 
+from typing import Union
+
 
 class RTPHeader(ct.BigEndianStructure):
     RTP_HEADER_LEN = 12
@@ -35,10 +37,10 @@ class RTPHeader(ct.BigEndianStructure):
     def __len__(self) -> int:
         return self.RTP_HEADER_LEN
 
-    def serialize(self, buffer: bytearray | memoryview) -> None:
+    def serialize(self, buffer: Union[bytearray, memoryview]) -> None:
         hdr_len = ct.sizeof(self)
         buffer[:hdr_len] = bytes(self)
 
-    def deserialize(self, buffer: bytearray | memoryview) -> None:
+    def deserialize(self, buffer: Union[bytearray, memoryview]) -> None:
         ct.memmove(ct.pointer(self), bytes(
             buffer[:self.RTP_HEADER_LEN]), ct.sizeof(self))
