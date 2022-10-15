@@ -42,8 +42,8 @@ class RTPTunClient:
             data_len, recv_addr = con.recvfrom_into(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
-
-            pass
+            # TODO cleanup
+            return
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
 
@@ -79,8 +79,10 @@ class RTPTunClient:
 
     def run(self):
         while True:
-            # It's impossible to close program without timeout
-            events = self.sel.select(2)
+            try:
+                events = self.sel.select(0.5)
+            except KeyboardInterrupt:
+                return
 
             for key, mask in events:
                 callback = key.data

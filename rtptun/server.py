@@ -89,8 +89,10 @@ class RTPTunServer:
 
     def run(self):
         while True:
-            # It's impossible to close program without timeout
-            events = self.sel.select(2)
+            try:
+                events = self.sel.select(0.5)
+            except KeyboardInterrupt:
+                return
 
             for key, mask in events:
                 callback = key.data
