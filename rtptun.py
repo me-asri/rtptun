@@ -1,9 +1,14 @@
 import argparse
 
+import xor
+
 from client import RTPTunClient
 from server import RTPTunServer
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-x', '--xor',
+                    help='XOR payload bytes with key (NOT A REPLACEMENT FOR PROPER ENCRYPTION!)', dest='key')
+
 subparsers = parser.add_subparsers(required=True,
                                    help='operation mode', dest='mode')
 
@@ -29,12 +34,18 @@ parser_server.add_argument('-q', '--dest-port', required=True,
 
 args = vars(parser.parse_args())
 
+if args['key'] and len(args['key']) < xor.MIN_KEY_LEN:
+    print(f'XOR key length must be more than {xor.MIN_KEY_LEN}')
+    exit(1)
+
 if args['mode'] == 'client':
     client = RTPTunClient(int(args['local_port']),
-                          args['server_addr'], int(args['server_port']))
+                          args['server_addr'], int(args['server_port']), args['key'])
     client.run()
 elif args['mode'] == 'server':
     server = RTPTunServer(args['source_addr'], int(args['source_port']),
-                          args['dest_addr'], int(args['dest_port']))
+                          args['dest_addr'], int(args['dest_port']), args['key'])
     server.run()
-    pass
+else:
+    print(f"Unknown mode {args['mode']}")
+    exit(1)

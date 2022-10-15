@@ -1,14 +1,17 @@
 import socket
 import selectors
 
+import xor
+
 from rtp import RTPHeader
 
 
 class RTPTunServer:
     BUFFER_SIZE = 8192
 
-    def __init__(self, source_ip: str, source_port: int, dest_ip: str, dest_port: int) -> None:
+    def __init__(self, source_ip: str, source_port: int, dest_ip: str, dest_port: int, key: str = None) -> None:
         self.dest_addr = (dest_ip, dest_port)
+        self.key = key
 
         self.ssock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssock.bind((source_ip, source_port))
@@ -33,6 +36,11 @@ class RTPTunServer:
         except:
             # TODO clean up?
             return
+
+        # XOR payload if key is specified
+        if self.key:
+            xor.xor(
+                self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.key)
 
         self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
@@ -68,10 +76,15 @@ class RTPTunServer:
             con.close()
             return
 
+        new_len = RTPHeader.RTP_HEADER_LEN + data_len
+
+        if self.key:
+            xor.xor(
+                self.buffer_view[RTPHeader.RTP_HEADER_LEN:new_len], self.key)
+
         self.rtp_hdr.ssrc = socket.htonl(ssrc)
         self.rtp_hdr.serialize(self.buffer)
 
-        new_len = RTPHeader.RTP_HEADER_LEN + data_len
         self.ssock.sendto(self.buffer_view[:new_len], addr)
 
     def run(self):
