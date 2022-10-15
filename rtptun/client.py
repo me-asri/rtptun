@@ -48,8 +48,7 @@ class RTPTunClient:
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
 
         if not recv_addr in self.ssrc_map:
-            ssrc = random.getrandbits(32)
-            self.ssrc_map[recv_addr] = ssrc
+            self.ssrc_map[recv_addr] = random.getrandbits(32)
 
         # Using SSRC field as local UDP identifier
         self.rtp_hdr.ssrc = socket.htonl(self.ssrc_map[recv_addr])
@@ -60,7 +59,14 @@ class RTPTunClient:
             xor.xor(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:new_len], self.key)
 
-        self.rsock.sendto(self.buffer_view[:new_len], self.remote_addr)
+        try:
+            self.rsock.sendto(self.buffer_view[:new_len], self.remote_addr)
+        except OSError:
+            logging.error(
+                'Failed to send datagram to remote server. No internet connection?')
+
+            del self.ssrc_map[recv_addr]
+            return
 
     def __rsock_callback(self, con: socket.socket, mask: int) -> None:
         try:
