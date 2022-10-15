@@ -5,8 +5,6 @@ import random
 
 import xor
 
-from typing import Mapping
-
 from rtp import RTPHeader
 
 
@@ -37,15 +35,14 @@ class RTPTunClient:
                           self.__rsock_callback)
 
         self.ssrc_map = {}
-        self.addr_map = {}
-        self.con_map: Mapping[socket.socket, int] = {}
 
     def __lsock_callback(self, con: socket.socket, mask: int) -> None:
         try:
             data_len, recv_addr = con.recvfrom_into(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
-            # TODO cleanup
+            # Local client closed connection
+            logging.warn('Local client closed connection')
             return
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
@@ -53,7 +50,7 @@ class RTPTunClient:
         if not recv_addr in self.ssrc_map:
             ssrc = random.getrandbits(32)
             self.ssrc_map[recv_addr] = ssrc
-            self.addr_map[ssrc] = recv_addr
+
         # Using SSRC field as local UDP identifier
         self.rtp_hdr.ssrc = socket.htonl(self.ssrc_map[recv_addr])
         self.rtp_hdr.serialize(self.buffer)
@@ -66,19 +63,30 @@ class RTPTunClient:
         self.rsock.sendto(self.buffer_view[:new_len], self.remote_addr)
 
     def __rsock_callback(self, con: socket.socket, mask: int) -> None:
-        data_len = con.recv_into(self.buffer)
+        try:
+            data_len = con.recv_into(self.buffer)
+        except ConnectionResetError:
+            # RTPTun server disconnected
+            logging.warning('Remote server closed connection')
+            return
 
         self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
+
+        try:
+            addr = next(addr for addr, s in self.ssrc_map.items()
+                        if s == ssrc)
+        except StopIteration:
+            # SSRC doesn't exist on client side
+            logging.warning(f'Failed to find local address for SSRC {ssrc}')
+            return
 
         if self.key:
             xor.xor(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.key)
 
-        # addr = next(addr for addr, s in self.ssrc_map.items()
-        #             if socket.ntohl(s) == ssrc)
         self.lsock.sendto(
-            self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.addr_map[ssrc])
+            self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], addr)
 
     def run(self):
         logging.info(
