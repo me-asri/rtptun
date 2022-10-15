@@ -42,7 +42,7 @@ class RTPTunClient:
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
             # Local client closed connection
-            logging.warn('Local client closed connection')
+            logging.info('Local client refused connection')
             return
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
@@ -73,7 +73,7 @@ class RTPTunClient:
             data_len = con.recv_into(self.buffer)
         except ConnectionResetError:
             # RTPTun server disconnected
-            logging.warning('Remote server closed connection')
+            logging.warning('Remote server refused connection')
             # TODO How do we cleanup data here?
             return
 
