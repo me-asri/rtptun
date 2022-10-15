@@ -26,12 +26,12 @@ parser_client.add_argument('-p', '--server-port', required=True,
 
 parser_server = subparsers.add_parser('server',
                                       help='run in server mode')
-parser_server.add_argument('-s', '--source-addr', required=True,
-                           help='Source address for incoming connection')
+parser_server.add_argument('-s', '--source-addr', default='0.0.0.0',
+                           help='Source address for incoming connection [0.0.0.0]')
 parser_server.add_argument('-p', '--source-port', required=True,
                            help='Source port for incoming connection')
-parser_server.add_argument('-d', '--dest-addr', required=True,
-                           help='Destination address for outgoing connection')
+parser_server.add_argument('-d', '--dest-addr', default='127.0.0.1',
+                           help='Destination address for outgoing connection [127.0.0.1]')
 parser_server.add_argument('-q', '--dest-port', required=True,
                            help='Destination port for outgoing connection')
 
