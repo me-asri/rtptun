@@ -1,3 +1,4 @@
+import logging
 import socket
 import selectors
 
@@ -10,11 +11,13 @@ class RTPTunServer:
     BUFFER_SIZE = 8192
 
     def __init__(self, source_ip: str, source_port: int, dest_ip: str, dest_port: int, key: str = None) -> None:
+        self.src_addr = (source_ip, source_port)
         self.dest_addr = (dest_ip, dest_port)
+
         self.key = key
 
         self.ssock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.ssock.bind((source_ip, source_port))
+        self.ssock.bind(self.src_addr)
 
         self.rtp_hdr = RTPHeader()
 
@@ -88,10 +91,14 @@ class RTPTunServer:
         self.ssock.sendto(self.buffer_view[:new_len], addr)
 
     def run(self):
+        logging.info(
+            f'Forwarding UDP traffic from {self.src_addr[0]}:{self.src_addr[1]} to {self.dest_addr[0]}:{self.dest_addr[1]}')
+
         while True:
             try:
                 events = self.sel.select(0.5)
             except KeyboardInterrupt:
+                logging.info('Bye bye!')
                 return
 
             for key, mask in events:

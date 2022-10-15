@@ -1,9 +1,12 @@
 import argparse
+import logging
 
 import xor
 
 from client import RTPTunClient
 from server import RTPTunServer
+
+logging.basicConfig(level=logging.INFO)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-x', '--xor',

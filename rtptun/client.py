@@ -1,9 +1,11 @@
+import logging
 import socket
 import selectors
 import random
-from typing import Mapping
 
 import xor
+
+from typing import Mapping
 
 from rtp import RTPHeader
 
@@ -12,6 +14,7 @@ class RTPTunClient:
     BUFFER_SIZE = 8192
 
     def __init__(self, local_port: int, remote_ip: str, remote_port: int, key: str = None) -> None:
+        self.local_port = local_port
         self.remote_addr = (remote_ip, remote_port)
         self.key = key
 
@@ -78,10 +81,14 @@ class RTPTunClient:
             self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.addr_map[ssrc])
 
     def run(self):
+        logging.info(
+            f'Tunneling UDP traffic from local {self.local_port} port to {self.remote_addr[0]}:{self.remote_addr[1]}')
+
         while True:
             try:
                 events = self.sel.select(0.5)
             except KeyboardInterrupt:
+                logging.info('Bye bye!')
                 return
 
             for key, mask in events:
