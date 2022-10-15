@@ -68,6 +68,7 @@ class RTPTunClient:
         except ConnectionResetError:
             # RTPTun server disconnected
             logging.warning('Remote server closed connection')
+            # TODO How do we cleanup data here?
             return
 
         self.rtp_hdr.deserialize(self.buffer)

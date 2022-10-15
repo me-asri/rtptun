@@ -29,15 +29,15 @@ class RTPTunServer:
         self.sel.register(self.ssock, selectors.EVENT_READ,
                           self.__ssock_callback)
 
-        self.addr_map = {}
         self.ssrc_map = {}
-        self.sock_map = {}
 
     def __ssock_callback(self, con: socket.socket, mask: int) -> None:
         try:
             data_len, addr = con.recvfrom_into(self.buffer)
         except:
-            # TODO clean up?
+            # Source refused connection
+            logging.warning('Source refused connection')
+            # TODO How do we cleanup data here?
             return
 
         # XOR payload if key is specified
@@ -48,35 +48,39 @@ class RTPTunServer:
         self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
-        if not addr in self.ssrc_map:
+        if not ssrc in self.ssrc_map:
             dsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             dsock.bind(('0.0.0.0', 0))
             self.sel.register(dsock, selectors.EVENT_READ,
                               self.__dsock_callback)
 
-            self.addr_map[dsock] = addr
-            self.ssrc_map[addr] = ssrc
-            self.sock_map[ssrc] = dsock
+            self.ssrc_map[ssrc] = (dsock, addr)
 
-        dsock = self.sock_map[ssrc]
+        dsock = self.ssrc_map[ssrc][0]
         dsock.sendto(
             self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.dest_addr)
 
     def __dsock_callback(self, con: socket.socket, mask: int) -> None:
-        addr = self.addr_map[con]
-        ssrc = self.ssrc_map[addr]
+        try:
+            ssrc = next(ssrc for ssrc, val in self.ssrc_map.items()
+                        if val[0] == con)
+        except StopIteration:
+            # SSRC doesn't exist on remote side
+            logging.warning(
+                f'Failed to find SSRC for socket #{con.fileno}')
+            return
 
         try:
             data_len = con.recv_into(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
+            # Destination refused connection
+            logging.warning('Destination refused connection')
+
             self.sel.unregister(con)
-
-            del self.addr_map[con]
-            del self.ssrc_map[addr]
-            del self.sock_map[ssrc]
-
             con.close()
+
+            del self.ssrc_map[ssrc]
             return
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
@@ -88,7 +92,7 @@ class RTPTunServer:
         self.rtp_hdr.ssrc = socket.htonl(ssrc)
         self.rtp_hdr.serialize(self.buffer)
 
-        self.ssock.sendto(self.buffer_view[:new_len], addr)
+        self.ssock.sendto(self.buffer_view[:new_len], self.ssrc_map[ssrc][1])
 
     def run(self):
         logging.info(
