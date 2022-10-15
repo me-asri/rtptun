@@ -9,7 +9,7 @@ from rtp import RTPHeader
 
 
 class RTPTunClient:
-    BUFFER_SIZE = 8192
+    BUFFER_SIZE = 65507
 
     def __init__(self, local_port: int, remote_ip: str, remote_port: int, key: str = None) -> None:
         self.local_port = local_port

@@ -8,7 +8,7 @@ from rtp import RTPHeader
 
 
 class RTPTunServer:
-    BUFFER_SIZE = 8192
+    BUFFER_SIZE = 65507
 
     def __init__(self, source_ip: str, source_port: int, dest_ip: str, dest_port: int, key: str = None) -> None:
         self.src_addr = (source_ip, source_port)
