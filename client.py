@@ -37,8 +37,9 @@ class RTPTunClient:
             self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
 
         if not recv_addr in self.ssrc_map:
-            self.ssrc_map[recv_addr] = random.getrandbits(32)
-            self.addr_map[recv_addr] = self.ssrc_map[recv_addr]
+            ssrc = random.getrandbits(32)
+            self.ssrc_map[recv_addr] = ssrc
+            self.addr_map[ssrc] = recv_addr
 
         # Using SSRC field as local UDP identifier
         self.rtp_hdr.ssrc = socket.htonl(self.ssrc_map[recv_addr])

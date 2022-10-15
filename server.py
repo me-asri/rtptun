@@ -23,6 +23,7 @@ class RTPTunServer:
         self.sel.register(self.ssock, selectors.EVENT_READ,
                           self.__ssock_callback)
 
+        self.addr_map = {}
         self.ssrc_map = {}
         self.sock_map = {}
 
@@ -30,42 +31,44 @@ class RTPTunServer:
         try:
             data_len, addr = con.recvfrom_into(self.buffer)
         except:
-            # TODO CLEAN UP!!!
+            # TODO clean up?
             return
 
         self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
-        if not ssrc in self.ssrc_map:
+        if not addr in self.ssrc_map:
             dsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             dsock.bind(('0.0.0.0', 0))
             self.sel.register(dsock, selectors.EVENT_READ,
                               self.__dsock_callback)
 
-            self.ssrc_map[ssrc] = (dsock, addr)
+            self.addr_map[dsock] = addr
+            self.ssrc_map[addr] = ssrc
+            self.sock_map[ssrc] = dsock
 
-        dsock = self.ssrc_map[ssrc][0]
+        dsock = self.sock_map[ssrc]
         dsock.sendto(
             self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.dest_addr)
 
     def __dsock_callback(self, con: socket.socket, mask: int) -> None:
-        for ssrc, info in self.ssrc_map.items():
-            if info[0] != con:
-                continue
-
-            addr = info[1]
+        addr = self.addr_map[con]
+        ssrc = self.ssrc_map[addr]
 
         try:
             data_len = con.recv_into(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
             self.sel.unregister(con)
-            con.close()
 
-            del self.ssrc_map[ssrc]
+            del self.addr_map[con]
+            del self.ssrc_map[addr]
+            del self.sock_map[ssrc]
+
+            con.close()
             return
 
-        self.rtp_hdr.ssrc = ssrc
+        self.rtp_hdr.ssrc = socket.htonl(ssrc)
         self.rtp_hdr.serialize(self.buffer)
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
