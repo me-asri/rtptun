@@ -43,7 +43,7 @@ class RTPTunClient:
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
         except ConnectionResetError:
             # Local client closed connection
-            logging.info('Local client refused connection')
+            logging.debug('Local client refused connection')
             return
 
         new_len = RTPHeader.RTP_HEADER_LEN + data_len
