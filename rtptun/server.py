@@ -19,7 +19,7 @@ class RTPTunServer:
         self.ssock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssock.bind(self.src_addr)
 
-        self.buffer = bytearray(RTPHeader.RTP_HEADER_LEN + self.BUFFER_SIZE)
+        self.buffer = bytearray(RTPHeader.SIZE + self.BUFFER_SIZE)
 
         self.rtp_hdr = RTPHeader.from_buffer(self.buffer)
         self.rtp_hdr.version = 2
@@ -44,7 +44,7 @@ class RTPTunServer:
         # XOR payload if key is specified
         if self.key:
             xor.xor(
-                self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.key)
+                self.buffer_view[RTPHeader.SIZE:data_len], self.key)
 
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
@@ -59,7 +59,7 @@ class RTPTunServer:
 
         dsock = self.ssrc_map[ssrc][0]
         dsock.sendto(
-            self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.dest_addr)
+            self.buffer_view[RTPHeader.SIZE:data_len], self.dest_addr)
 
     def __dsock_callback(self, con: socket.socket, mask: int) -> None:
         try:
@@ -73,7 +73,7 @@ class RTPTunServer:
 
         try:
             data_len = con.recv_into(
-                self.buffer_view[RTPHeader.RTP_HEADER_LEN:])
+                self.buffer_view[RTPHeader.SIZE:])
         except ConnectionResetError:
             # Destination refused connection
             logging.warning('Destination refused connection')
@@ -84,11 +84,11 @@ class RTPTunServer:
             del self.ssrc_map[ssrc]
             return
 
-        new_len = RTPHeader.RTP_HEADER_LEN + data_len
+        new_len = RTPHeader.SIZE + data_len
 
         if self.key:
             xor.xor(
-                self.buffer_view[RTPHeader.RTP_HEADER_LEN:new_len], self.key)
+                self.buffer_view[RTPHeader.SIZE:new_len], self.key)
 
         self.rtp_hdr.ssrc = socket.htonl(ssrc)
 
