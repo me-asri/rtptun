@@ -12,6 +12,8 @@ class RTPTunClient:
     BUFFER_SIZE = 65507
 
     def __init__(self, local_port: int, remote_ip: str, remote_port: int, key: str = None) -> None:
+        assert self.BUFFER_SIZE > RTPHeader.SIZE
+
         self.local_port = local_port
         self.remote_addr = (remote_ip, remote_port)
         self.key = key
@@ -22,7 +24,7 @@ class RTPTunClient:
         self.rsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsock.bind(('0.0.0.0', 0))
 
-        self.buffer = bytearray(RTPHeader.SIZE + self.BUFFER_SIZE)
+        self.buffer = bytearray(self.BUFFER_SIZE)
 
         self.rtp_hdr = RTPHeader.from_buffer(self.buffer)
         self.rtp_hdr.version = 2
