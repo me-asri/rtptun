@@ -8,8 +8,7 @@ __rtptun__ is a UDP tunnel which shapes UDP traffic into (fake) RTP traffic, hel
 
 ## Limitations
  * [The Parrot is Dead](https://people.cs.umass.edu/~amir/papers/parrot.pdf)
- * No authentication/validation for proxied UDP traffic
- * May have High CPU usage (for now)
+ * No encryption/authentication for proxied UDP traffic
  * No IPv6 support (for now)
  * Unfinished code
 
@@ -22,6 +21,7 @@ TL;DR: Use this software at your own discretion.
 
 ## Requirements
  * Python 3.8 or higher 
+ * PyCryptodome
 
 ## Usage
 ### Server
@@ -31,7 +31,7 @@ python3 rtptun -x MySuperSecretXORKey server -p 16384 -q 1194
 ```
 __rtptun__ will listen globally on port 16384 for __rtptun__ clients to forward data to and from the VPN server running locally on port 1194.
 
-You should choose a random string (at least 16 characters) as key for XOR obfuscation. You can disable XOR altogether by dropping the `-x` flag.
+You must choose a random string as key for XOR obfuscation. You can disable XOR altogether by dropping the `-x` flag.
 
 __KEEP IN MIND: XOR IS NOT A REPLACEMENT FOR PROPER ENCRYPTION!__
 
