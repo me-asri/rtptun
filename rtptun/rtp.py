@@ -1,7 +1,4 @@
 import ctypes as ct
-import socket
-
-from typing import Union
 
 
 class RTPHeader(ct.BigEndianStructure):
@@ -29,18 +26,5 @@ class RTPHeader(ct.BigEndianStructure):
         ('ssrc', ct.c_uint32)
     ]
 
-    def __init__(self) -> None:
-        self.version = 2  # Latest version
-        self.marker = 1  # Using marker
-        self.payload_type = 8  # G.711
-
     def __len__(self) -> int:
         return self.RTP_HEADER_LEN
-
-    def serialize(self, buffer: Union[bytearray, memoryview]) -> None:
-        hdr_len = ct.sizeof(self)
-        buffer[:hdr_len] = bytes(self)
-
-    def deserialize(self, buffer: Union[bytearray, memoryview]) -> None:
-        ct.memmove(ct.pointer(self), bytes(
-            buffer[:self.RTP_HEADER_LEN]), ct.sizeof(self))

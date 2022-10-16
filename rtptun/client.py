@@ -22,10 +22,11 @@ class RTPTunClient:
         self.rsock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rsock.bind(('0.0.0.0', 0))
 
-        self.rtp_hdr = RTPHeader()
-
         self.buffer = bytearray(RTPHeader.RTP_HEADER_LEN + self.BUFFER_SIZE)
-        self.rtp_hdr.serialize(self.buffer)
+
+        self.rtp_hdr = RTPHeader.from_buffer(self.buffer)
+        self.rtp_hdr.version = 2
+
         self.buffer_view = memoryview(self.buffer)
 
         self.sel = selectors.DefaultSelector()
@@ -52,7 +53,6 @@ class RTPTunClient:
 
         # Using SSRC field as local UDP identifier
         self.rtp_hdr.ssrc = socket.htonl(self.ssrc_map[recv_addr])
-        self.rtp_hdr.serialize(self.buffer)
 
         # XOR payload if key is specified
         if self.key:
@@ -77,7 +77,6 @@ class RTPTunClient:
             # TODO How do we cleanup data here?
             return
 
-        self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
         try:

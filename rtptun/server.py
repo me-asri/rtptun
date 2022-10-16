@@ -19,10 +19,11 @@ class RTPTunServer:
         self.ssock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.ssock.bind(self.src_addr)
 
-        self.rtp_hdr = RTPHeader()
-
         self.buffer = bytearray(RTPHeader.RTP_HEADER_LEN + self.BUFFER_SIZE)
-        self.rtp_hdr.serialize(self.buffer)
+
+        self.rtp_hdr = RTPHeader.from_buffer(self.buffer)
+        self.rtp_hdr.version = 2
+
         self.buffer_view = memoryview(self.buffer)
 
         self.sel = selectors.DefaultSelector()
@@ -45,7 +46,6 @@ class RTPTunServer:
             xor.xor(
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:data_len], self.key)
 
-        self.rtp_hdr.deserialize(self.buffer)
         ssrc = socket.ntohl(self.rtp_hdr.ssrc)
 
         # TODO Seperate SSRCs based on peer address
@@ -91,7 +91,6 @@ class RTPTunServer:
                 self.buffer_view[RTPHeader.RTP_HEADER_LEN:new_len], self.key)
 
         self.rtp_hdr.ssrc = socket.htonl(ssrc)
-        self.rtp_hdr.serialize(self.buffer)
 
         self.ssock.sendto(self.buffer_view[:new_len], self.ssrc_map[ssrc][1])
 
