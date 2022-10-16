@@ -2,8 +2,6 @@ import ctypes as ct
 
 
 class RTPHeader(ct.BigEndianStructure):
-    RTP_HEADER_LEN = 12
-
     _pack_ = 1
     _fields_ = [
         # RTP version (currently 2)
@@ -26,5 +24,5 @@ class RTPHeader(ct.BigEndianStructure):
         ('ssrc', ct.c_uint32)
     ]
 
-    def __len__(self) -> int:
-        return self.RTP_HEADER_LEN
+
+RTPHeader.SIZE = ct.sizeof(RTPHeader)
