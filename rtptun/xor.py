@@ -1,19 +1,9 @@
 from typing import Union
+from itertools import cycle, islice
 
-MIN_KEY_LEN = 16
+from Crypto.Util import strxor
 
 
 def xor(buffer: Union[bytearray, memoryview], key: str) -> None:
-    key_bytes = key.encode()
-
-    buffer_len = len(buffer)
-    key_len = len(key)
-
-    if key_len < MIN_KEY_LEN:
-        raise ValueError(
-            f'Key length cannot be less than {MIN_KEY_LEN} characters')
-
-    idx = 0
-    while idx < buffer_len:
-        buffer[idx] = buffer[idx] ^ key_bytes[idx % key_len]
-        idx += 1
+    k = bytes(islice(cycle(key.encode()), len(buffer)))
+    strxor.strxor(buffer, k, buffer)

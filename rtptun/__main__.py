@@ -37,10 +37,6 @@ parser_server.add_argument('-q', '--dest-port', required=True,
 
 args = vars(parser.parse_args())
 
-if args['key'] and len(args['key']) < xor.MIN_KEY_LEN:
-    print(f'XOR key length must be more than {xor.MIN_KEY_LEN}')
-    exit(1)
-
 if args['mode'] == 'client':
     client = RTPTunClient(int(args['local_port']),
                           args['server_addr'], int(args['server_port']), args['key'])
