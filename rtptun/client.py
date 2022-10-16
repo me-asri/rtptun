@@ -102,7 +102,7 @@ class RTPTunClient:
 
         while True:
             try:
-                events = self.sel.select(0.5)
+                events = self.sel.select(1)
             except KeyboardInterrupt:
                 logging.info('Bye bye!')
                 return
