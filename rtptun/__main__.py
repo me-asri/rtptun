@@ -1,8 +1,6 @@
 import argparse
 import logging
 
-import xor
-
 from client import RTPTunClient
 from server import RTPTunServer
 
