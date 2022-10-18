@@ -1,7 +1,7 @@
 import ctypes as ct
 
 
-class RTPHeader(ct.BigEndianStructure):
+class RtpHeader(ct.BigEndianStructure):
     _pack_ = 1
     _fields_ = [
         # RTP version (currently 2)
@@ -25,4 +25,4 @@ class RTPHeader(ct.BigEndianStructure):
     ]
 
 
-RTPHeader.SIZE = ct.sizeof(RTPHeader)
+RtpHeader.SIZE = ct.sizeof(RtpHeader)
