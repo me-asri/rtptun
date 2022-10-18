@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from rtptun.protocol.udp import Address, UdpSocket
 from rtptun.protocol.rtp import RtpHeader
 from rtptun.constants import Constants
-from rtptun.crypto import xor
+from rtptun.crypto.xor import xor
 
 import asyncio
 import random
@@ -75,8 +75,8 @@ class RtptunClient:
 
             # XOR payload if key is specified
             if self._key:
-                xor.xor(
-                    self._buffer_view[RtpHeader.SIZE:new_len], self._key)
+                xor(self._buffer_view[RtpHeader.SIZE:new_len],
+                    self._key, self._buffer_view[RtpHeader.SIZE:new_len])
 
             await self._remote_sock.send(self._buffer_view[:new_len])
 
@@ -97,8 +97,8 @@ class RtptunClient:
                 continue
 
             if self._key:
-                xor.xor(
-                    self._buffer_view[RtpHeader.SIZE:data_len], self._key)
+                xor(self._buffer_view[RtpHeader.SIZE:data_len],
+                    self._key, self._buffer_view[RtpHeader.SIZE:data_len])
 
             # Mark socket as active
             info.active = True
