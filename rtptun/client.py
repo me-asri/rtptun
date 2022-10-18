@@ -90,9 +90,8 @@ class RtptunClient:
 
             ssrc = socket.ntohl(self._rtp_hdr.ssrc)
 
-            try:
-                addr, info = self.__get_socket_info(ssrc)
-            except StopIteration:
+            addr, info = self.__get_socket_info(ssrc) or (None, None)
+            if not addr:
                 logging.warning(
                     f'Failed to find local address for SSRC {ssrc}')
                 continue
