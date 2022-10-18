@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
     # Use uvloop if available
     try:
-        import uvloop
+        import uvloop  # type: ignore
 
         uvloop.install()
         logging.info('Using uvloop for better performance')
