@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple, Union
 from dataclasses import dataclass
 
 from rtptun.protocol.udp import Address, UdpSocket
@@ -39,6 +39,15 @@ class RtptunClient:
 
         self._socket_map: Dict[Address, _SocketInfo] = {}
 
+    def __get_socket_info(self, ssrc: int) -> Union[Tuple[Address, _SocketInfo], None]:
+        try:
+            addr, info = next((addr, info) for addr, info in self._socket_map.items()
+                              if info.ssrc == ssrc)
+        except StopIteration:
+            return None
+
+        return (addr, info)
+
     async def __handle_local_socket(self) -> None:
         while True:
             data_len, recv_addr = await self._local_sock.recvfrom_into(
@@ -47,6 +56,10 @@ class RtptunClient:
             new_len = RtpHeader.SIZE + data_len
 
             if not recv_addr in self._socket_map:
+                ssrc = random.getrandbits(32)
+                while self.__get_socket_info(ssrc):
+                    ssrc = random.getrandbits(32)
+
                 self._socket_map[recv_addr] = _SocketInfo(
                     ssrc=random.getrandbits(32))
 
@@ -78,8 +91,7 @@ class RtptunClient:
             ssrc = socket.ntohl(self._rtp_hdr.ssrc)
 
             try:
-                addr = next(addr for addr, info in self._socket_map.items()
-                            if info.ssrc == ssrc)
+                addr, info = self.__get_socket_info(ssrc)
             except StopIteration:
                 logging.warning(
                     f'Failed to find local address for SSRC {ssrc}')
@@ -90,7 +102,7 @@ class RtptunClient:
                     self._buffer_view[RtpHeader.SIZE:data_len], self._key)
 
             # Mark socket as active
-            self._socket_map[addr].active = True
+            info.active = True
 
             await self._local_sock.sendto(
                 self._buffer_view[RtpHeader.SIZE:data_len], addr)
