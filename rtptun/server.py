@@ -60,6 +60,9 @@ class RtptunServer:
 
             # Increment sequence number for next packet
             info.seq_num += 1
+            if info.seq_num > 65535:
+                info.seq_num = 0
+
             # Mark socket as active
             sub_info.active = True
 

@@ -70,9 +70,13 @@ class RtptunClient:
             info = self._socket_map[recv_addr]
             # Using SSRC field as local UDP identifier
             self._rtp_hdr.ssrc = socket.htonl(info.ssrc)
+
             self._rtp_hdr.seq_number = socket.htons(self.seq_num)
+
             # Increment sequence number for next packet
             self.seq_num += 1
+            if self.seq_num > 65535:
+                self.seq_num = 0
 
             # Mark socket as active
             info.active = True
