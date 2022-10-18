@@ -46,6 +46,9 @@ class RtptunServer:
         while True:
             try:
                 data_len, _ = await sock.recvfrom_into(self._buffer_view[RtpHeader.SIZE:])
+            except BufferError:
+                logging.warning('Failed to fit data into buffer')
+                continue
             except SocketClosedError:
                 return
 
@@ -71,7 +74,11 @@ class RtptunServer:
 
     async def __handle_source_socket(self) -> None:
         while True:
-            data_len, addr = await self._src_sock.recvfrom_into(self._buffer)
+            try:
+                data_len, addr = await self._src_sock.recvfrom_into(self._buffer)
+            except BufferError:
+                logging.warning('Failed to fit data into buffer')
+                continue
 
             if data_len < RtpHeader.SIZE:
                 logging.warning('Packet with invalid size received')

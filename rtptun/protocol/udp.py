@@ -102,6 +102,9 @@ class UdpSocket:
 
         data_len = len(data)
 
+        if (len(buffer) < data_len):
+            raise BufferError("Can't fit data into specified buffer")
+
         buffer[:data_len] = data
         return data_len, addr
 
