@@ -14,6 +14,7 @@ __rtptun__ is a UDP tunnel which shapes UDP traffic into (fake) RTP traffic, hel
 ## Requirements
  * Python 3.8 or higher 
  * PyCryptodome
+ * uvloop (optional)
 
 ## Usage
 ### Server

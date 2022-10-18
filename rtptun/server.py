@@ -155,6 +155,15 @@ if __name__ == '__main__':
         logging.warning(
             'See https://github.com/python/cpython/issues/91227')
 
+    # Use uvloop if available
+    try:
+        import uvloop
+
+        uvloop.install()
+        logging.info('Using uvloop for better performance')
+    except ModuleNotFoundError:
+        pass
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-x', '--xor',
