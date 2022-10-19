@@ -84,7 +84,7 @@ class RtptunClient:
             self._rtp_hdr.timestamp = socket.htonl(info.timestamp)
             # Increment timestamp for next packet
             info.timestamp += 1
-            if info.timestamp < Constants.UINT32_MAX:
+            if info.timestamp > Constants.UINT32_MAX:
                 info.timestamp = 0
 
             # Mark socket as active
