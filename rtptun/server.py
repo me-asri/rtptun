@@ -186,11 +186,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.captureWarnings(True)
 
+    # Workaround for Proactor event loop bug on Windows
+    # See: https://github.com/python/cpython/issues/91227
     if sys.platform.startswith('win32'):
-        logging.warning(
-            'Connections may fail after disconnection due to a bug in asyncio on Windows')
-        logging.warning(
-            'See https://github.com/python/cpython/issues/91227')
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     # Use uvloop if available
     try:
