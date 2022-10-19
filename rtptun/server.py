@@ -16,6 +16,7 @@ import logging
 class _SubSocketInfo:
     sock: UdpSocket
     active: bool = True
+    timestamp: int = 0
 
 
 @dataclass
@@ -56,8 +57,8 @@ class RtptunServer:
             sub_info = info.dest_sockets[ssrc]
 
             self._rtp_hdr.ssrc = socket.htonl(ssrc)
-            self._rtp_hdr.seq_number = socket.htons(info.seq_num)
 
+            self._rtp_hdr.seq_number = socket.htons(info.seq_num)
             # Increment sequence number for next packet
             info.seq_num += 1
             if info.seq_num > Constants.UINT16_MAX:
@@ -65,6 +66,12 @@ class RtptunServer:
 
             # Mark socket as active
             sub_info.active = True
+
+            self._rtp_hdr.timestamp = socket.htonl(sub_info.timestamp)
+            # Increment timestamp for next packet
+            sub_info.timestamp += Constants.TIMESTAMP_INCREMENT
+            if sub_info.timestamp > Constants.UINT32_MAX:
+                sub_info.timestamp = 0
 
             new_len = RtpHeader.SIZE + data_len
 
@@ -102,7 +109,9 @@ class RtptunServer:
                 asyncio.create_task(
                     self.__handle_remote_socket(sock, addr, ssrc))
 
-                info.dest_sockets[ssrc] = _SubSocketInfo(sock)
+                timestamp = random.getrandbits(RtpHeader.TIMESTAMP_BITS)
+                info.dest_sockets[ssrc] = _SubSocketInfo(
+                    sock, timestamp=timestamp)
 
             # XOR payload if key is specified
             if self._key:

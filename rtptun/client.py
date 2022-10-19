@@ -16,6 +16,7 @@ import logging
 class _SocketInfo:
     ssrc: int
     active: bool = True
+    timestamp: int = 0
 
 
 class RtptunClient:
@@ -64,18 +65,26 @@ class RtptunClient:
                 while self.__get_socket_info(ssrc):
                     ssrc = random.getrandbits(RtpHeader.SSRC_BITS)
 
-                self._socket_map[recv_addr] = _SocketInfo(ssrc)
+                timestamp = random.getrandbits(RtpHeader.TIMESTAMP_BITS)
+                self._socket_map[recv_addr] = _SocketInfo(
+                    ssrc, timestamp=timestamp)
 
             info = self._socket_map[recv_addr]
+
             # Using SSRC field as local UDP identifier
             self._rtp_hdr.ssrc = socket.htonl(info.ssrc)
 
             self._rtp_hdr.seq_number = socket.htons(self.seq_num)
-
             # Increment sequence number for next packet
             self.seq_num += 1
             if self.seq_num > Constants.UINT16_MAX:
                 self.seq_num = 0
+
+            self._rtp_hdr.timestamp = socket.htonl(info.timestamp)
+            # Increment timestamp for next packet
+            info.timestamp += 1
+            if info.timestamp < Constants.UINT32_MAX:
+                info.timestamp = 0
 
             # Mark socket as active
             info.active = True
