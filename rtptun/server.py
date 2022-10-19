@@ -169,6 +169,20 @@ if __name__ == '__main__':
     import argparse
     import sys
 
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-s', '--source-addr', default='0.0.0.0',
+                        help='source address for incoming connection')
+    parser.add_argument('-p', '--source-port', required=True, default=argparse.SUPPRESS,
+                        help='source port for incoming connection')
+    parser.add_argument('-d', '--dest-addr', default='127.0.0.1',
+                        help='destination address for outgoing connection')
+    parser.add_argument('-q', '--dest-port', required=True, default=argparse.SUPPRESS,
+                        help='destination port for outgoing connection')
+    parser.add_argument('-x', '--xor', dest='key', default=argparse.SUPPRESS,
+                              help='XOR payload with key ! THIS IS NOT ENCRYPTION !')
+
     logging.basicConfig(level=logging.INFO)
     logging.captureWarnings(True)
 
@@ -186,19 +200,6 @@ if __name__ == '__main__':
         logging.info('Using uvloop for better performance')
     except ModuleNotFoundError:
         pass
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-x', '--xor',
-                        help='XOR payload bytes with key (NOT A REPLACEMENT FOR PROPER ENCRYPTION!)', dest='key')
-    parser.add_argument('-s', '--source-addr', default='0.0.0.0',
-                        help='Source address for incoming connection [0.0.0.0]')
-    parser.add_argument('-p', '--source-port', required=True,
-                        help='Source port for incoming connection')
-    parser.add_argument('-d', '--dest-addr', default='127.0.0.1',
-                        help='Destination address for outgoing connection [127.0.0.1]')
-    parser.add_argument('-q', '--dest-port', required=True,
-                        help='Destination port for outgoing connection')
 
     args = vars(parser.parse_args())
 

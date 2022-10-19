@@ -180,14 +180,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-x', '--xor',
-                        help='XOR payload bytes with key (NOT A REPLACEMENT FOR PROPER ENCRYPTION!)', dest='key')
-    parser.add_argument('-l', '--local-port', required=True,
-                        help='Local port for incoming connection')
-    parser.add_argument('-s', '--server-addr', required=True,
-                        help='Server address')
-    parser.add_argument('-p', '--server-port', required=True,
-                        help='Server port')
+    parser.add_argument('-l', '--local-port', required=True, default=argparse.SUPPRESS,
+                        help='local port for clients')
+    parser.add_argument('-s', '--server-addr', required=True, default=argparse.SUPPRESS,
+                        help='remote rtptun server address')
+    parser.add_argument('-p', '--server-port', required=True, default=argparse.SUPPRESS,
+                        help='remote rtptun server port')
+    parser.add_argument('-x', '--xor', dest='key', default=argparse.SUPPRESS,
+                              help='XOR payload with key ! THIS IS NOT ENCRYPTION !')
 
     args = vars(parser.parse_args())
 

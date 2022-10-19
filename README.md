@@ -19,34 +19,34 @@ __rtptun__ is a UDP tunnel which shapes UDP traffic into (fake) RTP traffic, hel
 ## Usage
 ### Server
 ```
-usage: server.py [-h] [-x KEY] [-s SOURCE_ADDR] -p SOURCE_PORT [-d DEST_ADDR] -q DEST_PORT
+usage: server.py [-h] [-s SOURCE_ADDR] -p SOURCE_PORT [-d DEST_ADDR] -q DEST_PORT [-x KEY]
 
 options:
   -h, --help            show this help message and exit
-  -x KEY, --xor KEY     XOR payload bytes with key (NOT A REPLACEMENT FOR PROPER ENCRYPTION!)
   -s SOURCE_ADDR, --source-addr SOURCE_ADDR
-                        Source address for incoming connection [0.0.0.0]
+                        source address for incoming connection (default: 0.0.0.0)
   -p SOURCE_PORT, --source-port SOURCE_PORT
-                        Source port for incoming connection
+                        source port for incoming connection
   -d DEST_ADDR, --dest-addr DEST_ADDR
-                        Destination address for outgoing connection [127.0.0.1]
+                        destination address for outgoing connection (default: 127.0.0.1)
   -q DEST_PORT, --dest-port DEST_PORT
-                        Destination port for outgoing connection
+                        destination port for outgoing connection
+  -x KEY, --xor KEY     XOR payload with key ! THIS IS NOT ENCRYPTION !
 ```
 
 ### Client
 ```
-usage: client.py [-h] [-x KEY] -l LOCAL_PORT -s SERVER_ADDR -p SERVER_PORT
+usage: client.py [-h] -l LOCAL_PORT -s SERVER_ADDR -p SERVER_PORT [-x KEY]
 
 options:
   -h, --help            show this help message and exit
-  -x KEY, --xor KEY     XOR payload bytes with key (NOT A REPLACEMENT FOR PROPER ENCRYPTION!)
   -l LOCAL_PORT, --local-port LOCAL_PORT
-                        Local port for incoming connection
+                        local port for clients
   -s SERVER_ADDR, --server-addr SERVER_ADDR
-                        Server address
+                        remote rtptun server address
   -p SERVER_PORT, --server-port SERVER_PORT
-                        Server port
+                        remote rtptun server port
+  -x KEY, --xor KEY     XOR payload with key ! THIS IS NOT ENCRYPTION !
 ```
 
 ## Example
@@ -74,5 +74,7 @@ __Client XOR key must match server's key.__
 ## Disclaimer
 __Here be dragons!__
 
-I'm no security expert and I've written this software just to learn a thing or two about networking.
+I'm no security expert, I've written this software just to learn a thing or two about networking.
+I'm not responsible if Lum-chan invades your home and steals your cookies.
+
 Use this software at your own discretion.
