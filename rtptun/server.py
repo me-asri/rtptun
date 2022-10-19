@@ -106,12 +106,13 @@ class RtptunServer:
             if not ssrc in info.dest_sockets:
                 sock = await UdpSocket.connect(
                     self.dest_addr)
-                asyncio.create_task(
-                    self.__handle_remote_socket(sock, addr, ssrc))
 
                 timestamp = random.getrandbits(RtpHeader.TIMESTAMP_BITS)
                 info.dest_sockets[ssrc] = _SubSocketInfo(
                     sock, timestamp=timestamp)
+
+                asyncio.create_task(
+                    self.__handle_remote_socket(sock, addr, ssrc))
 
             # XOR payload if key is specified
             if self._key:
