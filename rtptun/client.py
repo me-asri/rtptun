@@ -191,7 +191,7 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
 
     client = RtptunClient(int(args['local_port']),
-                          args['server_addr'], int(args['server_port']), args['key'])
+                          args['server_addr'], int(args['server_port']), args.get('key', None))
     try:
         asyncio.run(client.run())
     except KeyboardInterrupt:
