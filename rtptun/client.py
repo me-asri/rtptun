@@ -37,6 +37,7 @@ class RtptunClient:
 
         self._rtp_hdr = RtpHeader.from_buffer(self._buffer)
         self._rtp_hdr.version = 2
+        self._rtp_hdr.payload_type = random.randint(*Constants.DYNAMIC_RANGE)
 
         self._socket_map: Dict[Address, _SocketInfo] = {}
 

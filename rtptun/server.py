@@ -22,6 +22,7 @@ class _SubSocketInfo:
 @dataclass
 class _MainSocketInfo:
     seq_num: int
+    payload_type: int = 0
     dest_sockets: Dict[int, _SubSocketInfo] = None
 
 
@@ -57,6 +58,7 @@ class RtptunServer:
             sub_info = info.dest_sockets[ssrc]
 
             self._rtp_hdr.ssrc = socket.htonl(ssrc)
+            self._rtp_hdr.payload_type = info.payload_type
 
             self._rtp_hdr.seq_number = socket.htons(info.seq_num)
             # Increment sequence number for next packet
@@ -99,7 +101,8 @@ class RtptunServer:
             if not addr in self._socket_map:
                 self._socket_map[addr] = _MainSocketInfo(
                     seq_num=random.getrandbits(RtpHeader.SEQ_BITS),
-                    dest_sockets={}
+                    dest_sockets={},
+                    payload_type=self._rtp_hdr.payload_type
                 )
 
             info = self._socket_map[addr]
