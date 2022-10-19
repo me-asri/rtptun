@@ -60,7 +60,7 @@ class RtptunServer:
 
             # Increment sequence number for next packet
             info.seq_num += 1
-            if info.seq_num > 65535:
+            if info.seq_num > Constants.UINT16_MAX:
                 info.seq_num = 0
 
             # Mark socket as active
@@ -91,7 +91,7 @@ class RtptunServer:
 
             if not addr in self._socket_map:
                 self._socket_map[addr] = _MainSocketInfo(
-                    seq_num=random.getrandbits(16),
+                    seq_num=random.getrandbits(RtpHeader.SEQ_BITS),
                     dest_sockets={}
                 )
 

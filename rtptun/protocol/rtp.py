@@ -26,3 +26,5 @@ class RtpHeader(ct.BigEndianStructure):
 
 
 RtpHeader.SIZE = ct.sizeof(RtpHeader)
+RtpHeader.SEQ_BITS = 16
+RtpHeader.SSRC_BITS = 32

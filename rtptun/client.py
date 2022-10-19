@@ -32,7 +32,7 @@ class RtptunClient:
         self._buffer = bytearray(Constants.UDP_BUFFER_SIZE)
         self._buffer_view = memoryview(self._buffer)
 
-        self.seq_num = random.getrandbits(16)
+        self.seq_num = random.getrandbits(RtpHeader.SEQ_BITS)
 
         self._rtp_hdr = RtpHeader.from_buffer(self._buffer)
         self._rtp_hdr.version = 2
@@ -60,12 +60,11 @@ class RtptunClient:
             new_len = RtpHeader.SIZE + data_len
 
             if not recv_addr in self._socket_map:
-                ssrc = random.getrandbits(32)
+                ssrc = random.getrandbits(RtpHeader.SSRC_BITS)
                 while self.__get_socket_info(ssrc):
-                    ssrc = random.getrandbits(32)
+                    ssrc = random.getrandbits(RtpHeader.SSRC_BITS)
 
-                self._socket_map[recv_addr] = _SocketInfo(
-                    ssrc=random.getrandbits(32))
+                self._socket_map[recv_addr] = _SocketInfo(ssrc)
 
             info = self._socket_map[recv_addr]
             # Using SSRC field as local UDP identifier
@@ -75,7 +74,7 @@ class RtptunClient:
 
             # Increment sequence number for next packet
             self.seq_num += 1
-            if self.seq_num > 65535:
+            if self.seq_num > Constants.UINT16_MAX:
                 self.seq_num = 0
 
             # Mark socket as active
