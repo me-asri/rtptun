@@ -38,21 +38,23 @@ class UdpProtocol(asyncio.DatagramProtocol):
         self._socket._store_datagram(addr, data)
 
     def error_received(self, exc: Exception) -> None:
-        warnings.warn(f'UDP error ocurred: {str(exc)}')
+        warnings.warn(str(exc))
 
 
 class UdpSocket:
     def __init__(self):
         self._closed = False
         self._connected = False
+
         self._queue = asyncio.Queue()
+
         self._protocol: UdpProtocol = None
         self._transport: asyncio.DatagramTransport = None
 
     @staticmethod
-    async def new(listen_address: Address = None):
+    async def bind(listen_address: Address = None) -> 'UdpSocket':
         if not listen_address:
-            listen_address = ('127.0.0.1', 0)
+            listen_address = ('0.0.0.0', 0)
 
         self = UdpSocket()
 
@@ -66,7 +68,7 @@ class UdpSocket:
         return self
 
     @staticmethod
-    async def connect(remote_address: Address, local_address: Union[Address, None] = None):
+    async def connect(remote_address: Address, local_address: Union[Address, None] = None) -> 'UdpSocket':
         self = UdpSocket()
         self._connected = True
 
@@ -88,40 +90,30 @@ class UdpSocket:
 
     async def recvfrom(self) -> Tuple[Address, bytes]:
         if self._closed and self._queue.empty():
-            raise SocketClosedError('Socket is closed')
+            raise SocketClosedError('Socket closed')
 
         addr, data = await self._queue.get()
         if not addr:
             self._closed = True
-            raise SocketClosedError('Socket is closed')
+            raise SocketClosedError('Socket closed')
 
         return (addr, data)
 
-    async def recvfrom_into(self, buffer: Union[bytearray, memoryview]) -> Tuple[int, Address]:
-        addr, data = await self.recvfrom()
-
-        data_len = len(data)
-
-        if (len(buffer) < data_len):
-            raise BufferError("Can't fit data into specified buffer")
-
-        buffer[:data_len] = data
-        return data_len, addr
-
-    async def sendto(self, data: Union[bytes, bytearray, memoryview], address: Address):
+    async def sendto(self, data: bytes, address: Address) -> int:
         if self._closed:
-            raise SocketClosedError('Socket is closed')
+            raise SocketClosedError('Socket closed')
 
         # Wait until event loop write buffer is drained
         await self._protocol.writing.wait()
 
         self._transport.sendto(data, address)
+        return len(data)
 
-    async def send(self, data: Union[bytes, bytearray, memoryview]):
+    async def send(self, data: bytes) -> int:
         if not self._connected:
-            raise SocketNotConnectedError('Socket is not connected')
+            raise SocketNotConnectedError('Socket not connected')
 
-        await self.sendto(data, None)
+        return await self.sendto(data, None)
 
     def close(self):
         if self._closed:
@@ -146,7 +138,7 @@ class UdpSocket:
     @property
     def remote_address(self):
         if not self._connected:
-            raise SocketNotConnectedError('Socket is not connected')
+            raise SocketNotConnectedError('Socket not connected')
 
         sock = self._transport.get_extra_info('socket')
         return sock.getpeername()

@@ -1,168 +1,49 @@
-from typing import Dict, Tuple
-from dataclasses import dataclass
+from typing import Dict
 
-from rtptun.protocol.udp import SocketClosedError, UdpSocket
-from rtptun.protocol.rtp import RtpHeader
-from rtptun.constants import Constants
-from rtptun.crypto.xor import xor
+from rtptun.protocol.udp import Address, UdpSocket
+from rtptun.protocol.rtp import RtpSocket, RtpStream
+from rtptun.crypto import key
 
 import asyncio
-import random
-import socket
 import logging
 
 
-@dataclass
-class _SubSocketInfo:
-    sock: UdpSocket
-    active: bool = True
-    timestamp: int = 0
+class Server:
+    def __init__(self, listen_address: Address, destination_address: Address, key: bytes) -> None:
+        self.listen_address = listen_address
+        self.destination_address = destination_address
 
+        self.key = key
 
-@dataclass
-class _MainSocketInfo:
-    seq_num: int
-    payload_type: int = 0
-    dest_sockets: Dict[int, _SubSocketInfo] = None
+        self._udp_map: Dict[RtpStream, UdpSocket] = {}
 
-
-class RtptunServer:
-    def __init__(self, source_ip: str, source_port: int, dest_ip: str, dest_port: int, key: str = None) -> None:
-        assert Constants.UDP_BUFFER_SIZE > RtpHeader.SIZE
-
-        self.src_addr = (source_ip, source_port)
-        self.dest_addr = (dest_ip, dest_port)
-        self._key = key
-
-        self._src_sock: UdpSocket = None
-
-        self._buffer = bytearray(Constants.UDP_BUFFER_SIZE)
-        self._buffer_view = memoryview(self._buffer)
-
-        self._rtp_hdr = RtpHeader.from_buffer(self._buffer)
-        self._rtp_hdr.version = 2
-
-        self._socket_map: Dict[Tuple[str, int], _MainSocketInfo] = {}
-
-    async def __handle_remote_socket(self, sock: UdpSocket, peer_addr: Tuple[str, int], ssrc: int) -> None:
+    async def __handle_udp(self, udp: UdpSocket, stream: RtpStream) -> None:
         while True:
-            try:
-                data_len, _ = await sock.recvfrom_into(self._buffer_view[RtpHeader.SIZE:])
-            except BufferError:
-                logging.warning('Failed to fit data into buffer')
-                continue
-            except SocketClosedError:
-                return
+            _, data = await udp.recvfrom()
+            await stream.send(data)
 
-            info = self._socket_map[peer_addr]
-            sub_info = info.dest_sockets[ssrc]
-
-            self._rtp_hdr.ssrc = socket.htonl(ssrc)
-            self._rtp_hdr.payload_type = info.payload_type
-
-            self._rtp_hdr.seq_number = socket.htons(info.seq_num)
-            # Increment sequence number for next packet
-            info.seq_num += 1
-            if info.seq_num > Constants.UINT16_MAX:
-                info.seq_num = 0
-
-            # Mark socket as active
-            sub_info.active = True
-
-            self._rtp_hdr.timestamp = socket.htonl(sub_info.timestamp)
-            # Increment timestamp for next packet
-            sub_info.timestamp += Constants.TIMESTAMP_INCREMENT
-            if sub_info.timestamp > Constants.UINT32_MAX:
-                sub_info.timestamp = 0
-
-            new_len = RtpHeader.SIZE + data_len
-
-            if self._key:
-                xor(self._buffer_view[RtpHeader.SIZE:new_len],
-                    self._key, self._buffer_view[RtpHeader.SIZE:new_len])
-
-            await self._src_sock.sendto(
-                self._buffer_view[:new_len], peer_addr)
-
-    async def __handle_source_socket(self) -> None:
+    async def __handle_stream(self, stream: RtpStream) -> None:
         while True:
-            try:
-                data_len, addr = await self._src_sock.recvfrom_into(self._buffer)
-            except BufferError:
-                logging.warning('Failed to fit data into buffer')
-                continue
+            data = await stream.recv()
 
-            if data_len < RtpHeader.SIZE:
-                logging.warning('Packet with invalid size received')
-                continue
+            if not stream in self._udp_map:
+                sock = await UdpSocket.connect(self.destination_address)
+                asyncio.create_task(self.__handle_udp(sock, stream))
 
-            ssrc = socket.ntohl(self._rtp_hdr.ssrc)
+                self._udp_map[stream] = sock
 
-            if not addr in self._socket_map:
-                self._socket_map[addr] = _MainSocketInfo(
-                    seq_num=random.getrandbits(RtpHeader.SEQ_BITS),
-                    dest_sockets={},
-                    payload_type=self._rtp_hdr.payload_type
-                )
+            sock = self._udp_map[stream]
+            await sock.send(data)
 
-            info = self._socket_map[addr]
-            if not ssrc in info.dest_sockets:
-                sock = await UdpSocket.connect(
-                    self.dest_addr)
-
-                timestamp = random.getrandbits(RtpHeader.TIMESTAMP_BITS)
-                info.dest_sockets[ssrc] = _SubSocketInfo(
-                    sock, timestamp=timestamp)
-
-                asyncio.create_task(
-                    self.__handle_remote_socket(sock, addr, ssrc))
-
-            # XOR payload if key is specified
-            if self._key:
-                xor(self._buffer_view[RtpHeader.SIZE:data_len],
-                    self._key, self._buffer_view[RtpHeader.SIZE:data_len])
-
-            dest_sock = info.dest_sockets[ssrc].sock
-            await dest_sock.sendto(
-                self._buffer_view[RtpHeader.SIZE:data_len], self.dest_addr)
-
-    async def __cleanup(self) -> None:
+    async def __handle_rtp(self, rtp: RtpSocket) -> None:
         while True:
-            await asyncio.sleep(Constants.TIMEOUT)
-
-            inactive_main = []
-            inactive_sub = []
-
-            for addr, info in self._socket_map.items():
-                main_active = False
-
-                for ssrc, sub_info in info.dest_sockets.items():
-                    if sub_info.active:
-                        sub_info.active = False
-                        main_active = True
-                    else:
-                        inactive_sub.append((addr, ssrc))
-
-                if not main_active:
-                    inactive_main.append(addr)
-
-            for addr, ssrc in inactive_sub:
-                self._socket_map[addr].dest_sockets[ssrc].sock.close()
-                del self._socket_map[addr].dest_sockets[ssrc]
-
-            for addr in inactive_main:
-                del self._socket_map[addr]
+            stream = await rtp.recv_stream()
+            asyncio.create_task(self.__handle_stream(stream))
 
     async def run(self) -> None:
-        logging.info(
-            f'Forwarding UDP traffic from {self.src_addr[0]}:{self.src_addr[1]} to {self.dest_addr[0]}:{self.dest_addr[1]}')
+        self._rtp_sock = await RtpSocket.listen(self.key, self.listen_address)
 
-        self._src_sock = await UdpSocket.new(self.src_addr)
-
-        await asyncio.gather(
-            self.__cleanup(),
-            self.__handle_source_socket()
-        )
+        await self.__handle_rtp(self._rtp_sock)
 
 
 if __name__ == '__main__':
@@ -172,19 +53,38 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-s', '--source-addr', default='0.0.0.0',
-                        help='source address for incoming connection')
-    parser.add_argument('-p', '--source-port', required=True, default=argparse.SUPPRESS,
-                        help='source port for incoming connection')
+    class genkey_action(argparse.Action):
+        def __init__(self, option_strings, dest, nargs=0, **kwargs):
+            return super().__init__(option_strings, dest, nargs, **kwargs)
+
+        def __call__(self, parser, namespace, value, option_string, **kwargs):
+            print(key.gen_str_key())
+            parser.exit()
+
+    parser.add_argument('--gen-key', action=genkey_action, required=False, default=argparse.SUPPRESS,
+                        help='generate random key')
+
+    parser.add_argument('-i', '--listen-addr', default='0.0.0.0',
+                        help='listen address for incoming connection')
+    parser.add_argument('-l', '--listen-port', required=True, default=argparse.SUPPRESS,
+                        help='listen port for incoming connection')
     parser.add_argument('-d', '--dest-addr', default='127.0.0.1',
                         help='destination address for outgoing connection')
-    parser.add_argument('-q', '--dest-port', required=True, default=argparse.SUPPRESS,
+    parser.add_argument('-p', '--dest-port', required=True, default=argparse.SUPPRESS,
                         help='destination port for outgoing connection')
-    parser.add_argument('-x', '--xor', dest='key', default=argparse.SUPPRESS,
-                              help='XOR payload with key ! THIS IS NOT ENCRYPTION !')
+    parser.add_argument('-k', '--key', required=True, default=argparse.SUPPRESS,
+                        help='encryption key')
+
+    args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
     logging.captureWarnings(True)
+
+    try:
+        parsed_key = key.parse_str_key(args.key)
+    except ValueError:
+        logging.error('Invalid key')
+        exit(1)
 
     # Workaround for Proactor event loop bug on Windows
     # See: https://github.com/python/cpython/issues/91227
@@ -200,10 +100,11 @@ if __name__ == '__main__':
     except ModuleNotFoundError:
         pass
 
-    args = vars(parser.parse_args())
+    logging.info(
+        f'Tunneling traffic from {args.listen_addr}:{args.listen_port} to {args.dest_addr}:{args.dest_port}')
 
-    server = RtptunServer(args['source_addr'], int(args['source_port']),
-                          args['dest_addr'], int(args['dest_port']), args.get('key', None))
+    server = Server((args.listen_addr, args.listen_port),
+                    (args.dest_addr, args.dest_port), parsed_key)
     try:
         asyncio.run(server.run())
     except KeyboardInterrupt:

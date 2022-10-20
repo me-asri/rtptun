@@ -1,167 +1,70 @@
-from typing import Dict, Tuple, Union
-from dataclasses import dataclass
+from typing import Dict
 
+from rtptun.protocol.rtp import RtpSocket, RtpStream
 from rtptun.protocol.udp import Address, UdpSocket
-from rtptun.protocol.rtp import RtpHeader
-from rtptun.constants import Constants
-from rtptun.crypto.xor import xor
+from rtptun.crypto import key
 
 import asyncio
-import random
-import socket
 import logging
 
 
-@dataclass
-class _SocketInfo:
-    ssrc: int
-    active: bool = True
-    timestamp: int = 0
+class Client:
+    def __init__(self, local_port: int, remote_address: Address, key: bytes) -> None:
+        self.local_port = local_port
+        self.remote_address = remote_address
+        self.key = key
 
+        self._stream_map: Dict[Address, RtpStream] = {}
 
-class RtptunClient:
-    def __init__(self, local_port: int, remote_ip: str, remote_port: int, key: str = None) -> None:
-        assert Constants.UDP_BUFFER_SIZE > RtpHeader.SIZE
-
-        self._local_port = local_port
-        self._remote_addr = (remote_ip, remote_port)
-        self._key = key
-
-        self._local_sock: UdpSocket = None
-        self._remote_sock: UdpSocket = None
-
-        self._buffer = bytearray(Constants.UDP_BUFFER_SIZE)
-        self._buffer_view = memoryview(self._buffer)
-
-        self.seq_num = random.getrandbits(RtpHeader.SEQ_BITS)
-
-        self._rtp_hdr = RtpHeader.from_buffer(self._buffer)
-        self._rtp_hdr.version = 2
-        self._rtp_hdr.payload_type = random.randint(*Constants.DYNAMIC_RANGE)
-
-        self._socket_map: Dict[Address, _SocketInfo] = {}
-
-    def __get_socket_info(self, ssrc: int) -> Union[Tuple[Address, _SocketInfo], None]:
-        try:
-            addr, info = next((addr, info) for addr, info in self._socket_map.items()
-                              if info.ssrc == ssrc)
-        except StopIteration:
-            return None
-
-        return (addr, info)
-
-    async def __handle_local_socket(self) -> None:
+    async def __handle_stream(self, stream: RtpStream, udp: UdpSocket, dest_addr: Address) -> None:
         while True:
-            try:
-                data_len, recv_addr = await self._local_sock.recvfrom_into(
-                    self._buffer_view[RtpHeader.SIZE:])
-            except BufferError:
-                logging.warning('Failed to fit data into buffer')
-                continue
+            data = await stream.recv()
+            await udp.sendto(data, dest_addr)
 
-            new_len = RtpHeader.SIZE + data_len
-
-            if not recv_addr in self._socket_map:
-                ssrc = random.getrandbits(RtpHeader.SSRC_BITS)
-                while self.__get_socket_info(ssrc):
-                    ssrc = random.getrandbits(RtpHeader.SSRC_BITS)
-
-                timestamp = random.getrandbits(RtpHeader.TIMESTAMP_BITS)
-                self._socket_map[recv_addr] = _SocketInfo(
-                    ssrc, timestamp=timestamp)
-
-            info = self._socket_map[recv_addr]
-
-            # Using SSRC field as local UDP identifier
-            self._rtp_hdr.ssrc = socket.htonl(info.ssrc)
-
-            self._rtp_hdr.seq_number = socket.htons(self.seq_num)
-            # Increment sequence number for next packet
-            self.seq_num += 1
-            if self.seq_num > Constants.UINT16_MAX:
-                self.seq_num = 0
-
-            self._rtp_hdr.timestamp = socket.htonl(info.timestamp)
-            # Increment timestamp for next packet
-            info.timestamp += 1
-            if info.timestamp > Constants.UINT32_MAX:
-                info.timestamp = 0
-
-            # Mark socket as active
-            info.active = True
-
-            # XOR payload if key is specified
-            if self._key:
-                xor(self._buffer_view[RtpHeader.SIZE:new_len],
-                    self._key, self._buffer_view[RtpHeader.SIZE:new_len])
-
-            await self._remote_sock.send(self._buffer_view[:new_len])
-
-    async def __handle_remote_socket(self) -> None:
+    async def __handle_udp(self, udp: UdpSocket, rtp: RtpSocket) -> None:
         while True:
-            try:
-                data_len, _ = await self._remote_sock.recvfrom_into(self._buffer)
-            except BufferError:
-                logging.warning('Failed to fit data into buffer')
-                continue
+            addr, data = await udp.recvfrom()
+            if not addr in self._stream_map:
+                stream = rtp.create_stream()
+                self._stream_map[addr] = stream
+                asyncio.create_task(self.__handle_stream(stream, udp, addr))
+            stream = self._stream_map[addr]
 
-            if data_len < RtpHeader.SIZE:
-                logging.warning('Packet with invalid size received')
-                continue
-
-            ssrc = socket.ntohl(self._rtp_hdr.ssrc)
-
-            addr, info = self.__get_socket_info(ssrc) or (None, None)
-            if not addr:
-                logging.warning(
-                    f'Failed to find local address for SSRC {ssrc}')
-                continue
-
-            if self._key:
-                xor(self._buffer_view[RtpHeader.SIZE:data_len],
-                    self._key, self._buffer_view[RtpHeader.SIZE:data_len])
-
-            # Mark socket as active
-            info.active = True
-
-            await self._local_sock.sendto(
-                self._buffer_view[RtpHeader.SIZE:data_len], addr)
-
-    async def __cleanup(self) -> None:
-        while True:
-            await asyncio.sleep(Constants.TIMEOUT)
-
-            inactive = []
-
-            for addr, info in self._socket_map.items():
-                if info.active:
-                    info.active = False
-                else:
-                    inactive.append(addr)
-
-            for addr in inactive:
-                del self._socket_map[addr]
+            await stream.send(data)
 
     async def run(self) -> None:
-        logging.info(
-            f'Tunneling UDP traffic from local port {self._local_port} to {self._remote_addr[0]}:{self._remote_addr[1]}')
+        rtp_sock = await RtpSocket.connect(self.remote_address, self.key)
+        udp_sock = await UdpSocket.bind(('127.0.0.1', self.local_port))
 
-        self._local_sock = await UdpSocket.new(('127.0.0.1', self._local_port))
-        self._remote_sock = await UdpSocket.connect(self._remote_addr)
-
-        await asyncio.gather(
-            self.__handle_local_socket(),
-            self.__handle_remote_socket(),
-            self.__cleanup()
-        )
+        await self.__handle_udp(udp_sock, rtp_sock)
 
 
 if __name__ == '__main__':
     import argparse
     import sys
 
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-l', '--local-port', required=True, default=argparse.SUPPRESS,
+                        help='local port for clients')
+    parser.add_argument('-s', '--server-addr', required=True, default=argparse.SUPPRESS,
+                        help='remote rtptun server address')
+    parser.add_argument('-p', '--server-port', required=True, default=argparse.SUPPRESS,
+                        help='remote rtptun server port')
+    parser.add_argument('-k', '--key', required=True, default=argparse.SUPPRESS,
+                        help='encryption key')
+
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
     logging.captureWarnings(True)
+
+    try:
+        parsed_key = key.parse_str_key(args.key)
+    except ValueError:
+        logging.error('Invalid key')
+        exit(1)
 
     # Workaround for Proactor event loop bug on Windows
     # See: https://github.com/python/cpython/issues/91227
@@ -177,21 +80,11 @@ if __name__ == '__main__':
     except ModuleNotFoundError:
         pass
 
-    parser = argparse.ArgumentParser()
+    logging.info(
+        f'Tunneling traffic from local port {args.local_port} to {args.server_addr}:{args.server_port}')
 
-    parser.add_argument('-l', '--local-port', required=True, default=argparse.SUPPRESS,
-                        help='local port for clients')
-    parser.add_argument('-s', '--server-addr', required=True, default=argparse.SUPPRESS,
-                        help='remote rtptun server address')
-    parser.add_argument('-p', '--server-port', required=True, default=argparse.SUPPRESS,
-                        help='remote rtptun server port')
-    parser.add_argument('-x', '--xor', dest='key', default=argparse.SUPPRESS,
-                              help='XOR payload with key ! THIS IS NOT ENCRYPTION !')
-
-    args = vars(parser.parse_args())
-
-    client = RtptunClient(int(args['local_port']),
-                          args['server_addr'], int(args['server_port']), args.get('key', None))
+    client = Client(args.local_port, (args.server_addr,
+                    args.server_port), parsed_key)
     try:
         asyncio.run(client.run())
     except KeyboardInterrupt:
