@@ -9,6 +9,7 @@ import socket
 import random
 import warnings
 import logging
+import concurrent.futures
 
 
 _RTP_HEADER_SIZE = 12
@@ -22,7 +23,7 @@ _RTP_TIMESTAMP_INCREMENT = 3000  # 90kHz / 30FPS video
 _RTP_SEQ_BITS = 16
 _RTP_SEQ_MAX = (2 ** _RTP_SEQ_BITS)
 
-_RTP_TYPE = 97 # Dynamic
+_RTP_TYPE = 97  # Dynamic
 
 _RTP_STREAM_QUEUE_SIZE = 32
 _RTP_SOCKET_QUEUE_SIZE = 8
@@ -90,6 +91,9 @@ class RtpSocket:
         self._ssrc_map: Dict[int, RtpStream] = {}
         self._stream_queue = asyncio.Queue(_RTP_SOCKET_QUEUE_SIZE)
 
+        self._loop = asyncio.get_running_loop()
+        self._pool = concurrent.futures.ProcessPoolExecutor()
+
     @staticmethod
     async def connect(address: Address, key: bytes) -> 'RtpSocket':
         self = RtpSocket(key)
@@ -135,7 +139,7 @@ class RtpSocket:
         header.timestamp = stream.timestamp
         header.payload_type = stream.type
 
-        cipher, nonce, tag = chacha.encrypt(data, self.key)
+        cipher, nonce, tag = await self._loop.run_in_executor(self._pool, chacha.encrypt, data, self.key)
         payload[:data_len] = cipher
 
         nonce_end = data_len + chacha.CHACHA_NONCE_LEN
@@ -167,15 +171,15 @@ class RtpSocket:
             ssrc = socket.ntohl(header.ssrc)
             type = header.payload_type
 
-            payload = memoryview(data)[_RTP_HEADER_SIZE:]
-            payload_len = len(payload) - chacha.CHACHA_OVERHEAD
+            payload_len = len(data) - chacha.CHACHA_OVERHEAD - _RTP_HEADER_SIZE
 
-            nonce_end = payload_len + chacha.CHACHA_NONCE_LEN
-            nonce = payload[payload_len:nonce_end]
-            tag = payload[nonce_end:]
+            nonce_start = _RTP_HEADER_SIZE + payload_len
+            nonce_end = nonce_start + chacha.CHACHA_NONCE_LEN
+            nonce = data[nonce_start:nonce_end]
+            tag = data[nonce_end:]
 
-            plain_data = chacha.decrypt(
-                payload[:payload_len], self.key, nonce, tag)
+            plain_data = await self._loop.run_in_executor(self._pool, chacha.decrypt,
+                                                          data, payload_len, _RTP_HEADER_SIZE, self.key, nonce, tag)
             if not plain_data:
                 logging.warning(
                     f'Failed to decrypt payload from {addr[0]}:{addr[1]}#{ssrc}')

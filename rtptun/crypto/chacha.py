@@ -13,11 +13,14 @@ def encrypt(data: bytes, key: bytes) -> Tuple[bytes, bytes, bytes]:
     return cipherdata, cipher.nonce, tag
 
 
-def decrypt(cipherdata: bytes, key: bytes, nonce: bytes, tag: bytes) -> Union[bytes, None]:
+def decrypt(cipherdata: bytes, length: int, offset: int, key: bytes, nonce: bytes, tag: bytes) -> Union[bytes, None]:
     cipher = ChaCha20_Poly1305.new(key=key, nonce=nonce)
 
+    cipherview = memoryview(cipherdata)
+
     try:
-        data = cipher.decrypt_and_verify(cipherdata, tag)
+        data = cipher.decrypt_and_verify(
+            cipherview[offset:offset + length], tag)
     except ValueError:
         return None
     return data
