@@ -15,5 +15,9 @@ def encrypt(data: bytes, key: bytes) -> Tuple[bytes, bytes, bytes]:
 
 def decrypt(cipherdata: bytes, key: bytes, nonce: bytes, tag: bytes) -> Union[bytes, None]:
     cipher = ChaCha20_Poly1305.new(key=key, nonce=nonce)
-    data = cipher.decrypt_and_verify(cipherdata, tag)
+
+    try:
+        data = cipher.decrypt_and_verify(cipherdata, tag)
+    except ValueError:
+        return None
     return data
