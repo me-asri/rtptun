@@ -3,13 +3,11 @@ from base64 import b64decode, b64encode
 from Crypto.Random import get_random_bytes
 
 
-def gen_str_key(key_size: int = 256) -> str:
-    if key_size != 128 and key_size != 256:
-        raise ValueError('Invalid key size')
+KEY_SIZE = 32
 
-    nbytes = key_size // 8
 
-    key = get_random_bytes(nbytes)
+def gen_str_key() -> str:
+    key = get_random_bytes(KEY_SIZE)
     return b64encode(key).decode()
 
 
@@ -20,7 +18,7 @@ def parse_str_key(key: str) -> bytes:
         raise ValueError('Invalid key')
 
     dec_len = len(decoded)
-    if dec_len != 32 and dec_len != 256:
+    if dec_len != KEY_SIZE:
         raise ValueError('Invalid key')
 
     return decoded
