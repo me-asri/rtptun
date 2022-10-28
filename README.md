@@ -102,4 +102,5 @@ Use this software at your own discretion.
 ## Third-party Libraries
  * [libsodium](https://doc.libsodium.org/) - [ISC](https://raw.githubusercontent.com/jedisct1/libsodium/master/LICENSE)
  * [libev](http://software.schmorp.de/pkg/libev.html) - [BSD-2-Clause](http://cvs.schmorp.de/libev/LICENSE?revision=1.11&view=markup&pathrev=MAIN)
+ * [uthash](https://troydhanson.github.io/uthash/) - [BSD revised](https://troydhanson.github.io/uthash/license.html)
  * [Cygwin](https://www.cygwin.com/) (Windows only) - [LGPLv3](https://www.cygwin.com/COPYING)
