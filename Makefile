@@ -14,7 +14,7 @@ OBJEXT := o
 CC := gcc
 
 CFLAGS := -std=c11 -Wall
-CFLAGS_REL := -Werror -O3 -s
+CFLAGS_REL := -Werror -O3
 CFLAGS_DBG := -Og -g -DDEBUG
 
 INC:= -I$(INCDIR)
