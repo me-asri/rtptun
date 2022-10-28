@@ -68,6 +68,8 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
         goto error;
     }
 
+    sock->local_address_len = 0;
+
     sock->remote_address_len = res[0].ai_addrlen;
     memcpy(&sock->remote_address, res[0].ai_addr, res[0].ai_addrlen);
 
