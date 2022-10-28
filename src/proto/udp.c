@@ -91,9 +91,12 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
     return sock;
 error:
     if (sock)
+    {
+        if (res)
+            freeaddrinfo(res);
+
         free(sock);
-    if (res)
-        freeaddrinfo(res);
+    }
 
     return NULL;
 }
