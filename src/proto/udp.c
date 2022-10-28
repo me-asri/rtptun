@@ -67,21 +67,9 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
         elog_error("socket() failed");
         goto error;
     }
-    if (connect(sock->fd, res[0].ai_addr, res[0].ai_addrlen) != 0)
-    {
-        elog_error("connect() failed");
-        goto error;
-    }
 
     sock->remote_address_len = res[0].ai_addrlen;
     memcpy(&sock->remote_address, res[0].ai_addr, res[0].ai_addrlen);
-
-    sock->local_address_len = sizeof(sock->local_address);
-    if (getsockname(sock->fd, (struct sockaddr *)&sock->local_address, &sock->local_address_len) != 0)
-    {
-        elog_error("getsockname() failed");
-        goto error;
-    }
 
     if (set_sock_nonblocking(sock->fd) != 0)
     {
@@ -179,35 +167,7 @@ int udp_send(udp_socket_t *socket, const char *data, size_t data_len)
         return -1;
     }
 
-    if (data_len > UDP_BUFFER_SIZE)
-    {
-        log_error("Data length exceeds maximum UDP buffer size");
-        return -1;
-    }
-
-    ssize_t sent = send(socket->fd, data, data_len, 0);
-    if (sent < 0)
-    {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-        {
-            if (socket->out_buffer.data_len > 0)
-                log_warn("UDP out buffer overrun");
-
-            memcpy(socket->out_buffer.data, data, data_len);
-            socket->out_buffer.data_len = data_len;
-
-            ev_io_set(&socket->ev, socket->fd, EV_READ | EV_WRITE);
-
-            return 0;
-        }
-        else
-        {
-            elog_error("send() failed");
-            return -1;
-        }
-    }
-
-    return 0;
+    return udp_sendto(socket, data, data_len, &socket->remote_address, socket->remote_address_len);
 }
 
 int udp_sendto(udp_socket_t *socket, const char *data, size_t data_len,
@@ -283,25 +243,19 @@ void ev_callback(EV_P_ ev_io *io, int events)
 
     if (events & EV_WRITE)
     {
-        ssize_t sent;
-        if (sock->remote_address_len > 0)
-        {
-            sent = send(sock->fd, sock->out_buffer.data, sock->out_buffer.data_len, 0);
-            if (sent < 0)
-                elog_error("send() failed");
-        }
-        else
-        {
-            sent = sendto(sock->fd, sock->out_buffer.data, sock->out_buffer.data_len, 0,
-                          (struct sockaddr *)&sock->out_buffer.saddr, sock->out_buffer.saddr_len);
-            if (sent < 0)
-                elog_error("sendto() failed");
-        }
+        ssize_t sent = sendto(sock->fd, sock->out_buffer.data, sock->out_buffer.data_len, 0,
+                              (struct sockaddr *)&sock->out_buffer.saddr, sock->out_buffer.saddr_len);
 
         sock->out_buffer.data_len = 0;
         ev_io_set(&sock->ev, sock->fd, EV_READ);
 
-        if (sent > 0 && sock->send_callback)
+        if (sent < 0)
+        {
+            elog_error("sendto() failed");
+            return;
+        }
+
+        if (sock->send_callback)
             ((udp_send_callback_t)sock->send_callback)(sock, sent);
     }
     else if (events & EV_READ)
@@ -314,6 +268,11 @@ void ev_callback(EV_P_ ev_io *io, int events)
         if (nread < 0)
         {
             elog_warn("recvfrom() failed");
+            return;
+        }
+        if (sock->remote_address_len > 0 && memcmp(&sock->remote_address, &saddr, sock->remote_address_len) != 0)
+        {
+            log_debug("Dropping packet received from non-connected party");
             return;
         }
 
