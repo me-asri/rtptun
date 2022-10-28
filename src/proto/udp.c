@@ -30,7 +30,6 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
         goto error;
     }
 
-    sock->connected = 1;
     sock->loop = loop;
     sock->recv_callback = (void *)recv_callback;
     sock->send_callback = (void *)send_callback;
@@ -74,8 +73,15 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
         goto error;
     }
 
-    sock->address_length = res[0].ai_addrlen;
-    memcpy(res[0].ai_addr, &sock->address, res[0].ai_addrlen);
+    sock->remote_address_len = res[0].ai_addrlen;
+    memcpy(&sock->remote_address, res[0].ai_addr, res[0].ai_addrlen);
+
+    sock->local_address_len = sizeof(sock->local_address);
+    if (getsockname(sock->fd, (struct sockaddr *)&sock->local_address, &sock->local_address_len) != 0)
+    {
+        elog_error("getsockname() failed");
+        goto error;
+    }
 
     if (set_sock_nonblocking(sock->fd) != 0)
     {
@@ -111,20 +117,21 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
         goto error;
     }
 
-    sock->address_length = sizeof(sock->address);
-    if (parse_str_addr(address, port, &sock->address, &sock->address_length) != 0)
+    sock->remote_address_len = 0;
+
+    sock->local_address_len = sizeof(sock->local_address);
+    if (parse_str_addr(address, port, &sock->local_address, &sock->local_address_len) != 0)
     {
         log_error("Failed to parse address");
         goto error;
     }
 
-    sock->connected = 0;
     sock->loop = loop;
     sock->recv_callback = recv_callback;
     sock->send_callback = send_callback;
     sock->user_data = user_data;
 
-    sock->fd = socket(sock->address.ss_family, SOCK_DGRAM, 0);
+    sock->fd = socket(sock->local_address.ss_family, SOCK_DGRAM, 0);
     if (sock->fd < 0)
     {
         elog_error("socket() failed");
@@ -137,7 +144,7 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
         goto error;
     }
 
-    if (bind(sock->fd, (struct sockaddr *)&sock->address, sock->address_length) != 0)
+    if (bind(sock->fd, (struct sockaddr *)&sock->local_address, sock->local_address_len) != 0)
     {
         elog_error("bind() failed");
         goto error;
@@ -166,7 +173,7 @@ void udp_free(udp_socket_t *socket)
 
 int udp_send(udp_socket_t *socket, const char *data, size_t data_len)
 {
-    if (!socket->connected)
+    if (socket->remote_address_len == 0)
     {
         log_error("Socket not connected");
         return -1;
@@ -277,7 +284,7 @@ void ev_callback(EV_P_ ev_io *io, int events)
     if (events & EV_WRITE)
     {
         ssize_t sent;
-        if (sock->connected)
+        if (sock->remote_address_len > 0)
         {
             sent = send(sock->fd, sock->out_buffer.data, sock->out_buffer.data_len, 0);
             if (sent < 0)

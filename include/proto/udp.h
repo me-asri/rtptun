@@ -22,10 +22,12 @@ typedef struct udp_buffer
 typedef struct udp_socket
 {
     int fd;
-    int connected;
 
-    struct sockaddr_storage address;
-    socklen_t address_length;
+    struct sockaddr_storage local_address;
+    socklen_t local_address_len;
+
+    struct sockaddr_storage remote_address;
+    socklen_t remote_address_len;
 
     struct ev_loop *loop;
     ev_io ev;

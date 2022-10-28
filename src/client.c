@@ -45,7 +45,7 @@ rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr,
         goto error;
     }
 
-    client->udp_addr_len = client->udp_local->address_length;
+    client->udp_addr_len = client->udp_local->local_address_len;
 
     client->rtp_remote = rtp_connect(loop, remote_addr, remote_port, key, rtp_recv_cb, NULL, client);
     if (!client->rtp_remote)
