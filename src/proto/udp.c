@@ -198,7 +198,7 @@ int udp_sendto(udp_socket_t *socket, const char *data, size_t data_len,
         }
         else
         {
-            elog_error("sendto() failed");
+            elog_warn("sendto() failed");
             return -1;
         }
     }
@@ -251,7 +251,7 @@ void ev_callback(EV_P_ ev_io *io, int events)
 
         if (sent < 0)
         {
-            elog_error("sendto() failed");
+            elog_warn("sendto() failed");
             return;
         }
 
