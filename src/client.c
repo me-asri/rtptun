@@ -63,9 +63,12 @@ error:
     if (client)
     {
         if (client->udp_local)
+        {
             udp_free(client->udp_local);
-        if (client->rtp_remote)
-            rtp_free(client->rtp_remote);
+
+            if (client->rtp_remote)
+                rtp_free(client->rtp_remote);
+        }
 
         free(client);
     }
