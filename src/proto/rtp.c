@@ -273,10 +273,7 @@ void rtp_dest_free(rtp_socket_t *socket)
 void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
                        struct sockaddr_storage *address, socklen_t addrlen)
 {
-    if (data_len < 0)
-        return;
-
-    if (data_len <= sizeof(rtphdr_t))
+    if (data_len <= sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN)
     {
         log_warn("Received packet with invalid size");
         return;
