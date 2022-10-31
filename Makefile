@@ -17,6 +17,8 @@ CFLAGS := -std=c11 -Wall
 CFLAGS_REL := -Werror -O3
 CFLAGS_DBG := -Og -g -DDEBUG
 
+LDFLAGS :=
+
 INC:= -I$(INCDIR)
 LIB:= -lev -lsodium
 
@@ -28,6 +30,11 @@ else
 	CFLAGS += $(CFLAGS_REL)
 	OBJDIR := $(OBJDIR_REL)
 	BINDIR := $(BINDIR_REL)
+endif
+
+ifeq ($(STATIC),1)
+	LDFLAGS += -static
+	TARGET := $(TARGET)-static
 endif
 
 ifeq ($(PREFIX),)
@@ -46,7 +53,7 @@ all: $(BIN)
 $(BIN): $(OBJS)
 	@mkdir -p $(BINDIR)
 
-	$(CC) -o $(BIN) $^ $(LIB)
+	$(CC) -o $(BIN) $^ $(LDFLAGS) $(LIB)
 
 	@echo Compiled $(TARGET)
 
