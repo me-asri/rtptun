@@ -15,10 +15,10 @@ volatile log_level_t log_level = DEFAULT_LOG_LEVEL;
 void _log(log_level_t type, int print_errno, const char *file, int line, const char *format, ...)
 {
     static const char *LEVEL_STR[] = {
+        [LOG_DEBUG] = "DEBUG",
         [LOG_INFO] = "INFO",
         [LOG_WARN] = "WARN",
         [LOG_ERROR] = "ERROR",
-        [LOG_DEBUG] = "DEBUG",
         [LOG_FATAL] = "FATAL",
     };
 
@@ -51,7 +51,7 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
         errno = 0;
         strerror_r(err, strerr, sizeof(strerr));
         if (errno != 0)
-            fputs("Unknown error", stderr);
+            fputs(" (Unknown error)", stderr);
         else
             fprintf(stderr, " (%s)", strerr);
     }
