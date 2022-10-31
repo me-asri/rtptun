@@ -46,7 +46,7 @@ DEPS := $(wildcard $(INCDIR)/*.$(DEPEXT)) $(wildcard $(INCDIR)/**/*.$(DEPEXT))
 OBJS := $(patsubst $(SRCDIR)/%, $(OBJDIR)/%, $(SRCS:.$(SRCEXT)=.$(OBJEXT)))
 BIN := $(BINDIR)/$(TARGET)
 
-.PHONY: all clean install
+.PHONY: all clean install uninstall
 
 all: $(BIN)
 
@@ -68,3 +68,6 @@ clean:
 install: $(BIN)
 	install -d $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
+
+uninstall:
+	rm $(DESTDIR)$(PREFIX)/bin/$(TARGET)
