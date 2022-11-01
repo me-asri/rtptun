@@ -25,11 +25,8 @@ log_level_t log_level_get();
 #define elog_warn(format, args...) _log(LOG_WARN, 1, __FILE__, __LINE__, format, ##args)
 #define elog_error(format, args...) _log(LOG_ERROR, 1, __FILE__, __LINE__, format, ##args)
 
-#ifdef DEBUG
 #define log_debug(format, args...) _log(LOG_DEBUG, 0, __FILE__, __LINE__, format, ##args)
-#else
-#define log_debug(msg, args...)
-#endif
+#define elog_debug(format, args...) _log(LOG_DEBUG, 1, __FILE__, __LINE__, format, ##args)
 
 #define die(format, args...) _log(LOG_FATAL, __FILE__, __LINE__, format, ##args)
 
