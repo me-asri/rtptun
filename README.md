@@ -27,6 +27,11 @@ __rtptun__ is a UDP tunnel that reshapes UDP traffic as RTP, helping you get VPN
 ```
 $ pkg install libev libsodium
 ```
+#### Alpine
+```
+# apk add libev-dev libsodium-dev
+# apk add libsodium-static # (optional, needed for static builds)
+```
 #### Cygwin
  * gcc-core
  * make
@@ -130,7 +135,7 @@ I'm not responsible if Lum-chan invades your home and steals your cookies.
 
 Use this software at your own discretion.
 
-## Third-party Libraries
+## External Libraries
  * [libsodium](https://doc.libsodium.org/) - [ISC](https://raw.githubusercontent.com/jedisct1/libsodium/master/LICENSE)
  * [libev](http://software.schmorp.de/pkg/libev.html) - [BSD-2-Clause](http://cvs.schmorp.de/libev/LICENSE?revision=1.11&view=markup&pathrev=MAIN)
  * [uthash](https://troydhanson.github.io/uthash/) - [BSD revised](https://troydhanson.github.io/uthash/license.html)
