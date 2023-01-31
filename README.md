@@ -9,17 +9,16 @@ __rtptun__ is a UDP tunnel that reshapes UDP traffic as RTP, helping you get VPN
 ## Limitations
  * No replay protection
  * No forward secrecy
- * [The Parrot is Dead](https://people.cs.umass.edu/~amir/papers/parrot.pdf)
 
 ## Requirements
- * gcc (or clang)
- * make
+ * GCC (GCC 8 or higher recommended)
+ * Make
+ * Cygwin (for Windows builds)
  * libsodium
  * libev
- * Cygwin (Windows only)
 
-## Installation
-### Dependencies
+## Building
+### Installing required dependencies
 #### Ubuntu/Debian
 ```
 # apt install libev-dev libsodium-dev
@@ -34,10 +33,42 @@ $ pkg install libev libsodium
  * libev-devel
  * libsodium-devel
 
-### rtptun
+### Compiling
+There are several build types available:
+
+#### Release build
+Produces optimized binary.
+
+Recommended. This is usually what you want to go with.
 ```
-$ make -j$(nproc)
-# make install
+$ make -j$(nproc) DEBUG=0 STATIC=0
+```
+
+#### Static release build
+Same as release build but produces a static binary.
+
+Static builds do _not_ work under Windows yet.
+```
+$ make -j$(nproc) DEBUG=0 STATIC=1
+```
+
+#### Debug build
+Produces unopimized binary with debug information.
+
+Should only be used for development purposes.
+```
+$ make -j$(nproc) DEBUG=1 STATIC=0
+```
+
+### Installation
+#### Release build
+```
+$ make install DEBUG=0 STATIC=0
+```
+
+#### Static release build
+```
+$ make install DEBUG=0 STATIC=1
 ```
 
 ## Usage
@@ -103,4 +134,4 @@ Use this software at your own discretion.
  * [libsodium](https://doc.libsodium.org/) - [ISC](https://raw.githubusercontent.com/jedisct1/libsodium/master/LICENSE)
  * [libev](http://software.schmorp.de/pkg/libev.html) - [BSD-2-Clause](http://cvs.schmorp.de/libev/LICENSE?revision=1.11&view=markup&pathrev=MAIN)
  * [uthash](https://troydhanson.github.io/uthash/) - [BSD revised](https://troydhanson.github.io/uthash/license.html)
- * [Cygwin](https://www.cygwin.com/) (Windows only) - [LGPLv3](https://www.cygwin.com/COPYING)
+ * [Cygwin](https://www.cygwin.com/) (for Windows builds) - [LGPLv3](https://www.cygwin.com/COPYING)
