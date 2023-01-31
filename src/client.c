@@ -30,7 +30,7 @@ rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr,
     rtptun_client_t *client = calloc(1, sizeof(*client));
     if (!client)
     {
-        elog_error("malloc(rtptun_client_t) failed");
+        elog_error("calloc(rtptun_client_t) failed");
         goto error;
     }
 
@@ -176,7 +176,7 @@ void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
     info->active = true;
 
     if (rtp_send(client->rtp_remote, data, data_len, info->ssrc) != 0)
-        log_error("RTP failed to send data");
+        log_error("Failed to send RTP packet");
 }
 
 void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc)
@@ -193,7 +193,7 @@ void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc
     info->active = true;
 
     if (udp_sendto(client->udp_local, data, data_len, &info->saddr, client->udp_addr_len) != 0)
-        log_error("UDP failed to send data");
+        log_error("Failed to send UDP packet");
 }
 
 void timeout_cb(EV_P_ ev_timer *timer, int revents)

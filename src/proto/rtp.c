@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 
 #include <ev.h>
-#include <sodium/crypto_aead_chacha20poly1305.h>
 
 #include "ext/uthash.h"
 
@@ -39,7 +38,7 @@ rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char 
 
     if (chacha_init(&sock->cipher, key) != 0)
     {
-        log_error("Failed to initialize cipher. Invalid key?");
+        log_error("Failed to initialize cipher");
         goto error;
     }
 
@@ -84,7 +83,7 @@ rtp_socket_t *rtp_listen(struct ev_loop *loop, const char *address, const char *
 
     if (chacha_init(&sock->cipher, key) != 0)
     {
-        log_error("Failed to initialize cipher. Invalid key?");
+        log_error("Failed to initialize cipher");
         goto error;
     }
 
@@ -157,7 +156,7 @@ int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssr
         rtp_dest_t *dest = rtp_dest_set(socket, ssrc, NULL, 0, RTP_PAYLOAD_TYPE);
         if (!dest)
         {
-            log_error("Failed to map SSRC");
+            log_error("Failed to map RTP socket");
             return -1;
         }
 
@@ -275,14 +274,14 @@ void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
 {
     if (data_len <= sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN)
     {
-        log_warn("Received packet with invalid size");
+        log_debug("Received packet with invalid size");
         return;
     }
 
     rtphdr_t *header = (rtphdr_t *)data;
     if (header->version != 2)
     {
-        log_warn("Received packet with invalid RTP version");
+        log_debug("Received packet with invalid RTP version");
         return;
     }
 
@@ -306,7 +305,7 @@ void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
     if (!rtp_sock->connected)
     {
         if (!rtp_dest_set(rtp_sock, ssrc, address, addrlen, header->payload_type))
-            log_error("Failed to map SSRC");
+            log_error("Failed to map RTP socket");
     }
 
     if (rtp_sock->recv_cb)

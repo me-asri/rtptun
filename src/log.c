@@ -19,7 +19,6 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
         [LOG_INFO] = "INFO",
         [LOG_WARN] = "WARN",
         [LOG_ERROR] = "ERROR",
-        [LOG_FATAL] = "FATAL",
     };
 
     if (type < log_level)
@@ -60,9 +59,6 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
     fflush(stderr);
 
     funlockfile(stderr);
-
-    if (type == LOG_FATAL)
-        exit(EXIT_FAILURE);
 }
 
 void log_level_set(log_level_t level)

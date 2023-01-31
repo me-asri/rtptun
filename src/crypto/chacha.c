@@ -29,14 +29,16 @@ int chacha_init(chacha_cipher_t *cipher, const char *key)
     size_t bin_len = 0;
 
     if (sodium_init() == -1)
+    {
+        log_error("Failed to initialize libsodium");
         return -1;
+    }
 
-    if (!key)
+    if (!key || sodium_base642bin(cipher->key, sizeof(cipher->key), key, strlen(key), NULL, &bin_len, NULL, sodium_base64_VARIANT_ORIGINAL) != 0 || bin_len != sizeof(cipher->key))
+    {
+        log_error("Invalid key");
         return -1;
-    if (sodium_base642bin(cipher->key, sizeof(cipher->key), key, strlen(key), NULL, &bin_len, NULL, sodium_base64_VARIANT_ORIGINAL) != 0)
-        return -1;
-    if (bin_len != sizeof(cipher->key))
-        return -1;
+    }
 
     randombytes_buf(cipher->nonce, sizeof(cipher->nonce));
 

@@ -32,7 +32,7 @@ rtptun_server_t *rtptun_server_new(struct ev_loop *loop, const char *listen_addr
     rtptun_server_t *server = calloc(1, sizeof(*server));
     if (!server)
     {
-        elog_error("malloc(rtptun_server_t) failed");
+        elog_error("calloc(rtptun_server_t) failed");
         goto error;
     }
 
@@ -135,7 +135,7 @@ void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc
         info = info_map_set(&server->info_map, ssrc, server->local_rtp, udp_out);
         if (!info)
         {
-            log_error("Failed to map socket info");
+            log_error("Failed to map UDP socket");
             return;
         }
 
@@ -145,7 +145,7 @@ void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc
     info->active = true;
 
     if (udp_send(info->remote_udp, data, data_len) != 0)
-        log_error("UDP send failed");
+        log_error("Failed to send UDP packet");
 }
 
 void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
@@ -156,7 +156,7 @@ void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
     info->active = true;
 
     if (rtp_send(info->local_rtp, data, data_len, info->ssrc) != 0)
-        log_error("RTP send failed");
+        log_error("Failed to send RTP packet");
 }
 
 void timeout_cb(EV_P_ ev_timer *timer, int revents)
@@ -172,7 +172,7 @@ void timeout_cb(EV_P_ ev_timer *timer, int revents)
         }
         else
         {
-            log_debug("SSRC #%d timed out", current->ssrc);
+            log_debug("Client with SSRC #%d timed out", current->ssrc);
             udp_free(current->remote_udp);
 
             HASH_DEL(server->info_map, current);
