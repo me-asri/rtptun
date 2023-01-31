@@ -64,7 +64,7 @@ typedef struct rtp_socket
     struct rtp_dest *rtp_dest_map;
 } rtp_socket_t;
 
-typedef void (*rtp_recv_callback_t)(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc);
+typedef void (*rtp_recv_callback_t)(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc);
 typedef void (*rtp_send_callback_t)(rtp_socket_t *socket, ssize_t sent);
 
 rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char *port, const char *key,
@@ -73,7 +73,7 @@ rtp_socket_t *rtp_listen(struct ev_loop *loop, const char *address, const char *
                          rtp_recv_callback_t recv_callback, rtp_send_callback_t send_callback, void *user_data);
 void rtp_free(rtp_socket_t *socket);
 
-int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssrc);
+int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, ssrc_t ssrc);
 
 int rtp_close_stream(rtp_socket_t *socket, ssrc_t ssrc);
 

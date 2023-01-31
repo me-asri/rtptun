@@ -161,7 +161,7 @@ void udp_free(udp_socket_t *socket)
     free(socket);
 }
 
-int udp_send(udp_socket_t *socket, const char *data, size_t data_len)
+int udp_send(udp_socket_t *socket, const unsigned char *data, size_t data_len)
 {
     if (socket->remote_address_len == 0)
     {
@@ -172,7 +172,7 @@ int udp_send(udp_socket_t *socket, const char *data, size_t data_len)
     return udp_sendto(socket, data, data_len, &socket->remote_address, socket->remote_address_len);
 }
 
-int udp_sendto(udp_socket_t *socket, const char *data, size_t data_len,
+int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
                struct sockaddr_storage *address, socklen_t addr_len)
 {
     if (data_len > UDP_BUFFER_SIZE)
@@ -262,7 +262,7 @@ void ev_callback(EV_P_ ev_io *io, int events)
     }
     else if (events & EV_READ)
     {
-        char buffer[UDP_BUFFER_SIZE];
+        unsigned char buffer[UDP_BUFFER_SIZE];
 
         struct sockaddr_storage saddr;
         socklen_t addr_len = sizeof(saddr);

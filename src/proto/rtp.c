@@ -17,7 +17,7 @@
 #include "log.h"
 #include "proto/rtp.h"
 
-static void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
+static void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
                               struct sockaddr_storage *address, socklen_t addrlen);
 static void udp_send_callback(udp_socket_t *socket, ssize_t sent);
 
@@ -120,7 +120,7 @@ void rtp_free(rtp_socket_t *socket)
     free(socket);
 }
 
-int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssrc)
+int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, ssrc_t ssrc)
 {
     if (data_len > RTP_MAX_PAYLOAD_SIZE)
     {
@@ -128,8 +128,7 @@ int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssr
         return -1;
     }
 
-    // TODO: Explore using scatter/gather
-    char buffer[UDP_BUFFER_SIZE];
+    unsigned char buffer[UDP_BUFFER_SIZE];
     rtphdr_t *header = (rtphdr_t *)buffer;
 
     memset(header, 0, sizeof(*header));
@@ -137,7 +136,7 @@ int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssr
     header->ssrc = htonl(ssrc);
     header->seq_number = htons(socket->seq_num);
 
-    char *payload = &buffer[sizeof(rtphdr_t)];
+    unsigned char *payload = &buffer[sizeof(rtphdr_t)];
     if (chacha_encrypt(&socket->cipher, data, data_len,
                        payload,
                        &payload[data_len + CHACHA_NONCE_LEN],
@@ -269,7 +268,7 @@ void rtp_dest_free(rtp_socket_t *socket)
     }
 }
 
-void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
+void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
                        struct sockaddr_storage *address, socklen_t addrlen)
 {
     if (data_len <= sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN)
@@ -288,10 +287,10 @@ void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
     rtp_socket_t *rtp_sock = socket->user_data;
     ssrc_t ssrc = ntohl(header->ssrc);
 
-    char *cipher = (data + sizeof(rtphdr_t));
+    unsigned char *cipher = (data + sizeof(rtphdr_t));
     size_t payload_len = data_len - (sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN);
 
-    char dec_payload[RTP_MAX_PAYLOAD_SIZE];
+    unsigned char dec_payload[RTP_MAX_PAYLOAD_SIZE];
     if (chacha_decrypt(&rtp_sock->cipher, cipher, payload_len,
                        &data[data_len - CHACHA_MAC_LEN],
                        &data[data_len - (CHACHA_NONCE_LEN + CHACHA_MAC_LEN)],

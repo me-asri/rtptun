@@ -14,9 +14,9 @@
 #include "proto/udp.h"
 #include "proto/rtp.h"
 
-static void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
+static void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
                         struct sockaddr_storage *address, socklen_t addr_len);
-static void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc);
+static void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc);
 static void timeout_cb(EV_P_ ev_timer *timer, int revents);
 
 static rtptun_udp_info_t *info_map_set(rtptun_client_t *client, struct sockaddr_storage *saddr, ssrc_t ssrc);
@@ -155,7 +155,7 @@ void info_map_free(rtptun_client_t *client)
     }
 }
 
-void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
+void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
                  struct sockaddr_storage *address, socklen_t addr_len)
 {
     rtptun_client_t *client = socket->user_data;
@@ -179,7 +179,7 @@ void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
         log_error("Failed to send RTP packet");
 }
 
-void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc)
+void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc)
 {
     rtptun_client_t *client = socket->user_data;
 
