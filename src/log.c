@@ -10,6 +10,13 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#ifdef __MINGW32__
+#define flockfile _lock_file
+#define funlockfile _unlock_file
+
+#define strerror_r(errno, buffer, length) strerror_s(buffer, length, errno)
+#endif
+
 volatile log_level_t log_level = DEFAULT_LOG_LEVEL;
 
 void _log(log_level_t type, int print_errno, const char *file, int line, const char *format, ...)

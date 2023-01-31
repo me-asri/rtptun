@@ -8,16 +8,25 @@
 #include <limits.h>
 
 #include <sys/types.h>
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 #include <ev.h>
+
+#include <sodium.h>
 
 #include "ext/uthash.h"
 
 #include "log.h"
 #include "proto/rtp.h"
 
-static void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+static void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
                               struct sockaddr_storage *address, socklen_t addrlen);
 static void udp_send_callback(udp_socket_t *socket, ssize_t sent);
 
@@ -33,8 +42,7 @@ rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char 
 
     sock->connected = 1;
 
-    sock->rand_seed = time(NULL);
-    sock->seq_num = rand_r(&sock->rand_seed);
+    randombytes_buf(&sock->seq_num, sizeof(sock->seq_num));
 
     if (chacha_init(&sock->cipher, key) != 0)
     {
@@ -78,8 +86,7 @@ rtp_socket_t *rtp_listen(struct ev_loop *loop, const char *address, const char *
     }
 
     sock->connected = 0;
-    sock->rand_seed = time(NULL);
-    sock->seq_num = rand_r(&sock->rand_seed);
+    randombytes_buf(&sock->seq_num, sizeof(sock->seq_num));
 
     if (chacha_init(&sock->cipher, key) != 0)
     {
@@ -120,7 +127,7 @@ void rtp_free(rtp_socket_t *socket)
     free(socket);
 }
 
-int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, ssrc_t ssrc)
+int rtp_send(rtp_socket_t *socket, const char *data, size_t data_len, ssrc_t ssrc)
 {
     if (data_len > RTP_MAX_PAYLOAD_SIZE)
     {
@@ -128,7 +135,7 @@ int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, s
         return -1;
     }
 
-    unsigned char buffer[UDP_BUFFER_SIZE];
+    char buffer[UDP_BUFFER_SIZE];
     rtphdr_t *header = (rtphdr_t *)buffer;
 
     memset(header, 0, sizeof(*header));
@@ -136,7 +143,7 @@ int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, s
     header->ssrc = htonl(ssrc);
     header->seq_number = htons(socket->seq_num);
 
-    unsigned char *payload = &buffer[sizeof(rtphdr_t)];
+    char *payload = &buffer[sizeof(rtphdr_t)];
     if (chacha_encrypt(&socket->cipher, data, data_len,
                        payload,
                        &payload[data_len + CHACHA_NONCE_LEN],
@@ -191,10 +198,12 @@ int rtp_close_stream(rtp_socket_t *socket, ssrc_t ssrc)
 
 ssrc_t rtp_random_ssrc(rtp_socket_t *socket)
 {
-    ssrc_t ssrc = rand_r(&socket->rand_seed);
+    ssrc_t ssrc;
+    randombytes_buf(&ssrc, sizeof(ssrc));
+
     while (rtp_dest_find(socket, ssrc))
     {
-        ssrc = rand_r(&socket->rand_seed);
+        randombytes_buf(&ssrc, sizeof(ssrc));
     }
 
     return ssrc;
@@ -235,7 +244,7 @@ rtp_dest_t *rtp_dest_set(rtp_socket_t *socket, ssrc_t ssrc, struct sockaddr_stor
     dest->addr_len = address_len;
     memcpy(&dest->addr, address, address_len);
 
-    dest->timestamp = rand_r(&socket->rand_seed);
+    randombytes_buf(&dest->timestamp, sizeof(dest->timestamp));
     dest->pl_type = payload_type;
 
     HASH_ADD(hh, socket->rtp_dest_map, ssrc, sizeof(ssrc_t), dest);
@@ -268,7 +277,7 @@ void rtp_dest_free(rtp_socket_t *socket)
     }
 }
 
-void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+void udp_recv_callback(udp_socket_t *socket, char *data, ssize_t data_len,
                        struct sockaddr_storage *address, socklen_t addrlen)
 {
     if (data_len <= sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN)
@@ -287,10 +296,10 @@ void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_l
     rtp_socket_t *rtp_sock = socket->user_data;
     ssrc_t ssrc = ntohl(header->ssrc);
 
-    unsigned char *cipher = (data + sizeof(rtphdr_t));
+    char *cipher = (data + sizeof(rtphdr_t));
     size_t payload_len = data_len - (sizeof(rtphdr_t) + CHACHA_MAC_LEN + CHACHA_NONCE_LEN);
 
-    unsigned char dec_payload[RTP_MAX_PAYLOAD_SIZE];
+    char dec_payload[RTP_MAX_PAYLOAD_SIZE];
     if (chacha_decrypt(&rtp_sock->cipher, cipher, payload_len,
                        &data[data_len - CHACHA_MAC_LEN],
                        &data[data_len - (CHACHA_NONCE_LEN + CHACHA_MAC_LEN)],

@@ -6,7 +6,7 @@
                 "${workspaceFolder}/include/*"
             ],
             "defines": [],
-            "compilerPath": "C:\\cygwin64\\bin\\gcc.exe",
+            "compilerPath": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
             "intelliSenseMode": "linux-gcc-x64",
             "cStandard": "c11",
             "mergeConfigurations": false

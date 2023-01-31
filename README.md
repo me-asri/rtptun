@@ -13,7 +13,7 @@ __rtptun__ is a UDP tunnel that reshapes UDP traffic as RTP, helping you get VPN
 ## Requirements
  * GCC (GCC 8 or higher recommended)
  * Make
- * Cygwin (for Windows builds)
+ * MSYS2 (for Windows builds)
  * libsodium
  * libev
 
@@ -32,11 +32,8 @@ $ pkg install libev libsodium
 # apk add libev-dev libsodium-dev
 # apk add libsodium-static # (optional, needed for static builds)
 ```
-#### Cygwin
- * gcc-core
- * make
- * libev-devel
- * libsodium-devel
+#### Windows (MSYS2)
+TODO
 
 ### Compiling
 There are several build types available:
@@ -139,4 +136,3 @@ Use this software at your own discretion.
  * [libsodium](https://doc.libsodium.org/) - [ISC](https://raw.githubusercontent.com/jedisct1/libsodium/master/LICENSE)
  * [libev](http://software.schmorp.de/pkg/libev.html) - [BSD-2-Clause](http://cvs.schmorp.de/libev/LICENSE?revision=1.11&view=markup&pathrev=MAIN)
  * [uthash](https://troydhanson.github.io/uthash/) - [BSD revised](https://troydhanson.github.io/uthash/license.html)
- * [Cygwin](https://www.cygwin.com/) (for Windows builds) - [LGPLv3](https://www.cygwin.com/COPYING)

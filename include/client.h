@@ -3,7 +3,12 @@
 
 #include <stdbool.h>
 
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include "proto/udp.h"
 #include "proto/rtp.h"

@@ -6,7 +6,13 @@
 #include <stddef.h>
 
 #include <sys/types.h>
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include <ev.h>
 
@@ -40,7 +46,7 @@ typedef struct udp_socket
 } udp_socket_t;
 
 typedef void (*udp_send_callback_t)(udp_socket_t *socket, ssize_t sent);
-typedef void (*udp_recv_callback_t)(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+typedef void (*udp_recv_callback_t)(udp_socket_t *socket, char *data, ssize_t data_len,
                                     struct sockaddr_storage *address, socklen_t addr_len);
 
 udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char *port,
@@ -49,8 +55,8 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
                          udp_recv_callback_t recv_callback, udp_send_callback_t send_callback, void *user_data);
 void udp_free(udp_socket_t *socket);
 
-int udp_send(udp_socket_t *socket, const unsigned char *data, size_t data_len);
-int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
+int udp_send(udp_socket_t *socket, const char *data, size_t data_len);
+int udp_sendto(udp_socket_t *socket, const char *data, size_t data_len,
                struct sockaddr_storage *address, socklen_t addr_len);
 
 #endif

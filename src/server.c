@@ -17,8 +17,8 @@
 #include "rtptun.h"
 #include "log.h"
 
-static void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc);
-static void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+static void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc);
+static void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
                         struct sockaddr_storage *address, socklen_t addrlen);
 static void timeout_cb(EV_P_ ev_timer *timer, int revents);
 
@@ -117,7 +117,7 @@ void info_map_free(rtptun_rtp_info_t **hash)
     }
 }
 
-void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc)
+void rtp_recv_cb(rtp_socket_t *socket, char *data, ssize_t data_len, ssrc_t ssrc)
 {
     rtptun_server_t *server = socket->user_data;
 
@@ -148,7 +148,7 @@ void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ss
         log_error("Failed to send UDP packet");
 }
 
-void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+void udp_recv_cb(udp_socket_t *socket, char *data, ssize_t data_len,
                  struct sockaddr_storage *address, socklen_t addrlen)
 {
     rtptun_rtp_info_t *info = socket->user_data;

@@ -19,8 +19,12 @@ CFLAGS_DBG := -Og -g -DDEBUG
 
 LDFLAGS :=
 
-INC:= -I$(INCDIR)
-LIB:= -lev -lsodium
+INC := -I$(INCDIR)
+LIB := -lev -lsodium
+
+ifeq ($(OS),Windows_NT)
+	LIB += -lws2_32
+endif
 
 ifeq ($(DEBUG),1)
 	CFLAGS += $(CFLAGS_DBG)

@@ -18,9 +18,9 @@ typedef struct chacha_cipher
 char *chacha_gen_key();
 
 int chacha_init(chacha_cipher_t *cipher, const char *b64_key);
-int chacha_encrypt(chacha_cipher_t *cipher, const unsigned char *data, size_t data_len,
-                   unsigned char *ciphertext, unsigned char mac[CHACHA_MAC_LEN], unsigned char nonce[CHACHA_NONCE_LEN]);
-int chacha_decrypt(chacha_cipher_t *cipher, const unsigned char *ciphertext, size_t ciphertext_len,
-                   const unsigned char mac[CHACHA_MAC_LEN], const unsigned char nonce[CHACHA_NONCE_LEN], unsigned char *data);
+int chacha_encrypt(chacha_cipher_t *cipher, const char *data, size_t data_len,
+                   char *ciphertext, char mac[CHACHA_MAC_LEN], char nonce[CHACHA_NONCE_LEN]);
+int chacha_decrypt(chacha_cipher_t *cipher, const char *ciphertext, size_t ciphertext_len,
+                   const char mac[CHACHA_MAC_LEN], const char nonce[CHACHA_NONCE_LEN], char *data);
 
 #endif

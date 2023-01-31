@@ -9,10 +9,19 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifdef __MINGW32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define EAI_SYSTEM EAI_FAIL
+#else
+#include <fcntl.h>
+
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <fcntl.h>
+#endif
 
 #include "log.h"
 
@@ -128,12 +137,6 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
         goto error;
     }
 
-    if (setsockopt(sock->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) != 0)
-    {
-        elog_error("setsockopt(SO_REUSEADDR) failed");
-        goto error;
-    }
-
     if (bind(sock->fd, (struct sockaddr *)&sock->local_address, sock->local_address_len) != 0)
     {
         elog_error("bind() failed");
@@ -161,7 +164,7 @@ void udp_free(udp_socket_t *socket)
     free(socket);
 }
 
-int udp_send(udp_socket_t *socket, const unsigned char *data, size_t data_len)
+int udp_send(udp_socket_t *socket, const char *data, size_t data_len)
 {
     if (socket->remote_address_len == 0)
     {
@@ -172,7 +175,7 @@ int udp_send(udp_socket_t *socket, const unsigned char *data, size_t data_len)
     return udp_sendto(socket, data, data_len, &socket->remote_address, socket->remote_address_len);
 }
 
-int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
+int udp_sendto(udp_socket_t *socket, const char *data, size_t data_len,
                struct sockaddr_storage *address, socklen_t addr_len)
 {
     if (data_len > UDP_BUFFER_SIZE)
@@ -262,7 +265,7 @@ void ev_callback(EV_P_ ev_io *io, int events)
     }
     else if (events & EV_READ)
     {
-        unsigned char buffer[UDP_BUFFER_SIZE];
+        char buffer[UDP_BUFFER_SIZE];
 
         struct sockaddr_storage saddr;
         socklen_t addr_len = sizeof(saddr);
@@ -285,6 +288,12 @@ void ev_callback(EV_P_ ev_io *io, int events)
 
 int set_sock_nonblocking(int fd)
 {
+#ifdef __MINGW32__
+    if (ioctlsocket(fd, FIONBIO, &(unsigned long){1}) != 0)
+        return -1;
+
+    return 0;
+#else
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0)
         return -1;
@@ -294,4 +303,5 @@ int set_sock_nonblocking(int fd)
         return -1;
 
     return 0;
+#endif
 }
