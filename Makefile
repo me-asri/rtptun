@@ -41,8 +41,8 @@ ifeq ($(PREFIX),)
 	PREFIX := /usr/local
 endif
 
-SRCS := $(wildcard $(SRCDIR)/*.$(SRCEXT)) $(wildcard $(SRCDIR)/**/*.$(SRCEXT))
-DEPS := $(wildcard $(INCDIR)/*.$(DEPEXT)) $(wildcard $(INCDIR)/**/*.$(DEPEXT))
+SRCS := $(shell find $(SRCDIR) -name *.$(SRCEXT) -type f)
+DEPS := $(shell find $(INCDIR) -name *.$(DEPEXT) -type f)
 OBJS := $(patsubst $(SRCDIR)/%, $(OBJDIR)/%, $(SRCS:.$(SRCEXT)=.$(OBJEXT)))
 BIN := $(BINDIR)/$(TARGET)
 
