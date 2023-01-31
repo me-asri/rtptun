@@ -29,7 +29,7 @@ static void info_map_free(rtptun_rtp_info_t **hash);
 rtptun_server_t *rtptun_server_new(struct ev_loop *loop, const char *listen_addr, const char *listen_port,
                                    const char *dest_addr, const char *dest_port, const char *key)
 {
-    rtptun_server_t *server = malloc(sizeof(*server));
+    rtptun_server_t *server = calloc(1, sizeof(*server));
     if (!server)
     {
         elog_error("malloc(rtptun_server_t) failed");

@@ -27,7 +27,7 @@ static void info_map_free(rtptun_client_t *client);
 rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr, const char *local_port,
                                    const char *remote_addr, const char *remote_port, const char *key)
 {
-    rtptun_client_t *client = malloc(sizeof(*client));
+    rtptun_client_t *client = calloc(1, sizeof(*client));
     if (!client)
     {
         elog_error("malloc(rtptun_client_t) failed");
