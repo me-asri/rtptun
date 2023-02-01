@@ -128,12 +128,6 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
         goto error;
     }
 
-    if (setsockopt(sock->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) != 0)
-    {
-        elog_error("setsockopt(SO_REUSEADDR) failed");
-        goto error;
-    }
-
     if (bind(sock->fd, (struct sockaddr *)&sock->local_address, sock->local_address_len) != 0)
     {
         elog_error("bind() failed");
