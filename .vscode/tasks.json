@@ -1,0 +1,79 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "/usr/bin/make",
+            "args": [
+                "-j8",
+                "DEBUG=${input:build}",
+                "STATIC=${input:static}"
+            ],
+            "windows": {
+                "command": "C:\\cygwin64\\bin\\make.exe",
+                "options": {
+                    "env": {
+                        "PATH": "C:\\cygwin64\\bin;%PATH%",
+                    }
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Clean",
+            "type": "process",
+            "command": "/usr/bin/make",
+            "args": [
+                "clean",
+                "DEBUG=${input:build}",
+            ],
+            "windows": {
+                "command": "C:\\cygwin64\\bin\\make.exe",
+                "options": {
+                    "env": {
+                        "PATH": "C:\\cygwin64\\bin;%PATH%",
+                    }
+                }
+            },
+            "group": {
+                "kind": "build"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "build",
+            "type": "pickString",
+            "description": "Select build type",
+            "options": [
+                {
+                    "label": "Release",
+                    "value": "0"
+                },
+                {
+                    "label": "Debug",
+                    "value": "1"
+                }
+            ]
+        },
+        {
+            "id": "static",
+            "type": "pickString",
+            "description": "Select binary type",
+            "options": [
+                {
+                    "label": "Dynamic",
+                    "value": "0"
+                },
+                {
+                    "label": "Static",
+                    "value": "1"
+                }
+            ]
+        }
+    ]
+}
