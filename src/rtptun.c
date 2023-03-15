@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     const char *listen_port = NULL;
     const char *dest_addr = NULL;
     const char *dest_port = NULL;
+    log_level_t log_level = DEFAULT_LOG_LEVEL;
 
     char *action_arg = argv[1];
     if (action_arg && action_arg[0] != '-')
@@ -72,7 +73,7 @@ int main(int argc, char *argv[])
             key = optarg;
             break;
         case 'v':
-            log_level_set(LOG_DEBUG);
+            log_level = LOG_DEBUG;
             break;
         case 'h':
             print_usage(argv[0], stdout);
@@ -84,6 +85,8 @@ int main(int argc, char *argv[])
             argerror(argv[0], "unhandled option: %c", opt);
         }
     }
+
+    log_init(log_level);
 
     if (!action_arg)
         argerror(argv[0], "missing action argument");
@@ -121,7 +124,7 @@ int main(int argc, char *argv[])
         if (!client)
             return 1;
 
-        log_info("Tunneling [%s]:%s to [%s]:%s", listen_addr, listen_port, dest_addr, dest_port);
+        log_i("Tunneling [%s]:%s to [%s]:%s", listen_addr, listen_port, dest_addr, dest_port);
 
         ev_run(loop, 0);
 
@@ -149,7 +152,7 @@ int main(int argc, char *argv[])
         if (!server)
             return 1;
 
-        log_info("Tunneling [%s]:%s to [%s]:%s", listen_addr, listen_port, dest_addr, dest_port);
+        log_i("Tunneling [%s]:%s to [%s]:%s", listen_addr, listen_port, dest_addr, dest_port);
 
         ev_run(loop, 0);
 
@@ -232,7 +235,7 @@ action_t parse_action(const char *action)
 
 void signal_callback(EV_P_ ev_signal *w, int revents)
 {
-    log_info("Bye bye!");
+    log_i("Bye bye!");
     ev_break(EV_A_ EVBREAK_ALL);
 }
 

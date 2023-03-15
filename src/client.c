@@ -30,7 +30,7 @@ rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr,
     rtptun_client_t *client = calloc(1, sizeof(*client));
     if (!client)
     {
-        elog_error("calloc(rtptun_client_t) failed");
+        elog_e("calloc(rtptun_client_t) failed");
         goto error;
     }
 
@@ -41,7 +41,7 @@ rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr,
     client->udp_local = udp_listen(loop, local_addr, local_port, udp_recv_cb, NULL, client);
     if (!client->udp_local)
     {
-        log_error("Failed to create local UDP socket");
+        log_e("Failed to create local UDP socket");
         goto error;
     }
 
@@ -50,7 +50,7 @@ rtptun_client_t *rtptun_client_new(struct ev_loop *loop, const char *local_addr,
     client->rtp_remote = rtp_connect(loop, remote_addr, remote_port, key, rtp_recv_cb, NULL, client);
     if (!client->rtp_remote)
     {
-        log_error("Failed to create remote RTP socket");
+        log_e("Failed to create remote RTP socket");
         goto error;
     }
 
@@ -95,7 +95,7 @@ static rtptun_udp_info_t *info_map_set(rtptun_client_t *client, struct sockaddr_
     info = malloc(sizeof(*info));
     if (!info)
     {
-        elog_error("malloc(rtptun_udp_info_t) failed");
+        elog_e("malloc(rtptun_udp_info_t) failed");
         goto error;
     }
     memcpy(&info->saddr, saddr, client->udp_addr_len);
@@ -105,7 +105,7 @@ static rtptun_udp_info_t *info_map_set(rtptun_client_t *client, struct sockaddr_
     rev_info = malloc(sizeof(*rev_info));
     if (!rev_info)
     {
-        elog_error("malloc(rtptun_udp_info_t) failed");
+        elog_e("malloc(rtptun_udp_info_t) failed");
         goto error;
     }
     memcpy(rev_info, info, sizeof(*info));
@@ -163,12 +163,12 @@ void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
     rtptun_udp_info_t *info = info_map_find(client, address);
     if (!info)
     {
-        log_debug("Received packet from new sender");
+        log_d("Received packet from new sender");
 
         info = info_map_set(client, address, rtp_random_ssrc(client->rtp_remote));
         if (!info)
         {
-            log_error("Failed to map local socket");
+            log_e("Failed to map local socket");
             return;
         }
     }
@@ -176,7 +176,7 @@ void udp_recv_cb(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
     info->active = true;
 
     if (rtp_send(client->rtp_remote, data, data_len, info->ssrc) != 0)
-        log_error("Failed to send RTP packet");
+        log_e("Failed to send RTP packet");
 }
 
 void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc)
@@ -186,14 +186,14 @@ void rtp_recv_cb(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ss
     rtptun_udp_info_t *info = info_map_find_reverse(client, ssrc);
     if (!info)
     {
-        log_debug("Received packet from unrecognized SSRC #%d", ssrc);
+        log_d("Received packet from unrecognized SSRC #%d", ssrc);
         return;
     }
 
     info->active = true;
 
     if (udp_sendto(client->udp_local, data, data_len, &info->saddr, client->udp_addr_len) != 0)
-        log_error("Failed to send UDP packet");
+        log_e("Failed to send UDP packet");
 }
 
 void timeout_cb(EV_P_ ev_timer *timer, int revents)
@@ -212,7 +212,7 @@ void timeout_cb(EV_P_ ev_timer *timer, int revents)
         }
         else
         {
-            log_debug("Connection associated with SSRC #%d timed out", current->ssrc);
+            log_d("Connection associated with SSRC #%d timed out", current->ssrc);
 
             HASH_DEL(client->info_map_reverse, reverse);
             HASH_DEL(client->info_map, current);

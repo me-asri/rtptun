@@ -16,7 +16,7 @@ char *chacha_gen_key()
     char *key = malloc(max_len);
     if (!key)
     {
-        elog_error("malloc() failed");
+        elog_e("malloc() failed");
         return NULL;
     }
 
@@ -30,13 +30,13 @@ int chacha_init(chacha_cipher_t *cipher, const char *b64_key)
 
     if (sodium_init() == -1)
     {
-        log_error("Failed to initialize libsodium");
+        log_e("Failed to initialize libsodium");
         return -1;
     }
 
     if (!b64_key || sodium_base642bin(cipher->key, sizeof(cipher->key), b64_key, strlen(b64_key), NULL, &bin_len, NULL, sodium_base64_VARIANT_ORIGINAL) != 0 || bin_len != sizeof(cipher->key))
     {
-        log_error("Invalid key");
+        log_e("Invalid key");
         return -1;
     }
 

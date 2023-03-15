@@ -4,13 +4,32 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include <stdarg.h>
-#include <stdlib.h>
 
-volatile log_level_t log_level = DEFAULT_LOG_LEVEL;
+#include <unistd.h>
+
+#define ANSI_RESET "\033[0m"
+#define ANSI_FG(color, str) "\033[0;" color "m" str ANSI_RESET
+
+#define ANSI_FG_RED(str) ANSI_FG("31", str)
+#define ANSI_FG_GREEN(str) ANSI_FG("32", str)
+#define ANSI_FG_YELLOW(str) ANSI_FG("33", str)
+#define ANSI_FG_CYAN(str) ANSI_FG("36", str)
+#define ANSI_FG_BRIGHT_CYAN(str) ANSI_FG("96", str)
+#define ANSI_FG_GREY(str) ANSI_FG("90", str)
+
+static log_level_t log_level = DEFAULT_LOG_LEVEL;
+static bool log_color = false;
+
+void log_init(log_level_t level)
+{
+    log_level = level;
+    log_color = (isatty(fileno(stderr)) == 1);
+}
 
 void _log(log_level_t type, int print_errno, const char *file, int line, const char *format, ...)
 {
@@ -19,6 +38,14 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
         [LOG_INFO] = "INFO",
         [LOG_WARN] = "WARN",
         [LOG_ERROR] = "ERROR",
+        [LOG_FATAL] = "FATAL",
+    };
+    static const char *LEVEL_STR_COLOR[] = {
+        [LOG_DEBUG] = ANSI_FG_GREY("DEBUG"),
+        [LOG_INFO] = ANSI_FG_GREEN("INFO"),
+        [LOG_WARN] = ANSI_FG_YELLOW("WARN"),
+        [LOG_ERROR] = ANSI_FG_RED("ERROR"),
+        [LOG_FATAL] = ANSI_FG_RED("FATAL"),
     };
 
     if (type < log_level)
@@ -33,7 +60,11 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
 
     flockfile(stderr);
 
-    fprintf(stderr, "%s %s %s:%d: ", time_str, LEVEL_STR[type], file, line);
+    if (log_color)
+        fprintf(stderr, ANSI_FG_GREY("%s") " %s " ANSI_FG_CYAN("%s") ":" ANSI_FG_BRIGHT_CYAN("%d") " ",
+                time_str, LEVEL_STR_COLOR[type], file, line);
+    else
+        fprintf(stderr, "%s %s %s:%d ", time_str, LEVEL_STR[type], file, line);
 
     va_list args;
     va_start(args, format);
@@ -59,14 +90,12 @@ void _log(log_level_t type, int print_errno, const char *file, int line, const c
     fflush(stderr);
 
     funlockfile(stderr);
+
+    if (type == LOG_FATAL)
+        exit(EXIT_FAILURE);
 }
 
-void log_level_set(log_level_t level)
-{
-    log_level = level;
-}
-
-log_level_t log_level_get()
+log_level_t log_get_level()
 {
     return log_level;
 }
