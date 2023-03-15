@@ -34,7 +34,7 @@ endif
 
 ifeq ($(STATIC),1)
 	LDFLAGS += -static
-	TARGET := $(TARGET)-static
+	TARGET := $(TARGET)
 endif
 
 ifeq ($(PREFIX),)
@@ -46,7 +46,20 @@ DEPS := $(shell find $(INCDIR) -name *.$(DEPEXT) -type f)
 OBJS := $(patsubst $(SRCDIR)/%, $(OBJDIR)/%, $(SRCS:.$(SRCEXT)=.$(OBJEXT)))
 BIN := $(BINDIR)/$(TARGET)
 
-.PHONY: all clean install uninstall
+ARCH := $(shell uname -m)
+
+ifeq ($(OS),Windows_NT)
+	OSNAME := windows
+
+	BIN := $(BIN).exe
+	DLLS = $(shell ldd $(BIN) | grep -oP '/usr/bin/.*.dll')
+else
+	OSNAME := $(shell uname -o | tr A-Z a-z)
+
+	DLLS :=
+endif
+
+.PHONY: all clean install uninstall archive
 
 all: $(BIN)
 
@@ -63,7 +76,7 @@ $(OBJDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) $(INC)
 
 clean:
-	rm -rf $(OBJDIR) $(BINDIR)
+	rm -rf $(OBJDIR) $(BINDIR) rtptun-$(OSNAME)-$(ARCH).zip
 
 install: $(BIN)
 	install -d $(DESTDIR)$(PREFIX)/bin/
@@ -71,3 +84,6 @@ install: $(BIN)
 
 uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/$(TARGET)
+
+archive: $(BIN)
+	zip -j rtptun-$(OSNAME)-$(ARCH).zip ./README.md ./LICENSE $(BIN) $(DLLS)
