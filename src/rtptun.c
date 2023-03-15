@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         if (!dest_addr)
             argerror(argv[0], "destination address not specified");
         if (!dest_port)
-            argerror(argv[0], "destination port not specified");
+            dest_port = RTPTUN_DEFAULT_SERVER_PORT;
 
         struct ev_loop *loop = EV_DEFAULT;
         watch_signals(loop);
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         if (!listen_addr)
             listen_addr = RTPTUN_DEFAULT_SERVER_LISTEN;
         if (!listen_port)
-            argerror(argv[0], "listen port not specified");
+            listen_port = RTPTUN_DEFAULT_SERVER_PORT;
         if (!dest_addr)
             dest_addr = RTPTUN_DEFAULT_DEST_ADDR;
         if (!dest_port)
@@ -177,8 +177,8 @@ void print_usage(const char *prog, FILE *out)
     static const char MESSAGE[] = "Usage: %1$s <action> <options>\n"
                                   "Example:\n"
                                   " - Generate key: %1$s genkey\n"
-                                  " - Run server:   %1$s server -k <KEY> -l 6942 -p 1194\n"
-                                  " - Run client:   %1$s client -k <KEY> -l 1194 -d 192.0.2.1 -p 6942\n"
+                                  " - Run server:   %1$s server -k <KEY> -l 5004 -p 1194\n"
+                                  " - Run client:   %1$s client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004\n"
                                   "\n"
                                   "Actions:\n"
                                   "  client  : run as client\n"
@@ -187,7 +187,7 @@ void print_usage(const char *prog, FILE *out)
                                   "\n"
                                   "Server options:\n"
                                   "  -i : listen address (default: " RTPTUN_DEFAULT_SERVER_LISTEN ")\n"
-                                  "  -l : listen port\n"
+                                  "  -l : listen port (default: " RTPTUN_DEFAULT_SERVER_PORT ")\n"
                                   "  -d : destination address (default: " RTPTUN_DEFAULT_DEST_ADDR ")\n"
                                   "  -p : destination port\n"
                                   "\n"
@@ -195,7 +195,7 @@ void print_usage(const char *prog, FILE *out)
                                   "  -i : listen address (default: " RTPTUN_DEFAULT_CLIENT_LISTEN ")\n"
                                   "  -l : listen port\n"
                                   "  -d : server address\n"
-                                  "  -p : server port\n"
+                                  "  -p : server port (default: " RTPTUN_DEFAULT_SERVER_PORT ")\n"
                                   "\n"
                                   "Common options:\n"
                                   "  -k : encryption key\n"
