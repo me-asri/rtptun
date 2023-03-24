@@ -10,6 +10,6 @@ RUN make -j$(nproc) DEBUG=0 STATIC=1
 FROM scratch
 
 WORKDIR /app
-COPY --from=build /app/bin/rel/rtptun-static /app/rtptun
+COPY --from=build /app/bin/rel/rtptun /app/rtptun
 
 ENTRYPOINT ["./rtptun"]
