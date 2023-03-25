@@ -2,13 +2,14 @@
 __rtptun__ is a UDP tunnel that reshapes UDP traffic as RTP, helping you get VPN traffic through protocol whitelists.
 
 ## Features
+ * Lightweight
  * Asynchronous
  * Cross-platform (tested on Linux, Windows and Android)
- * Encryption (ChaCha20-Poly1305)
+ * Payload encryption (ChaCha20-Poly1305)
 
 ## Limitations
- * No replay protection
  * No forward secrecy
+ * No replay protection
 
 ## Requirements
  * GCC (GCC 8 or higher recommended)
@@ -78,11 +79,11 @@ $ make install DEBUG=0 STATIC=1
 
 ## Usage
 ```
-Usage: ./bin/rel/rtptun <action> <options>
+Usage: rtptun <action> <options>
 Example:
- - Generate key: ./bin/rel/rtptun genkey
- - Run server:   ./bin/rel/rtptun server -k <KEY> -l 5004 -p 1194
- - Run client:   ./bin/rel/rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
+ - Generate key: rtptun genkey
+ - Run server:   rtptun server -k <KEY> -l 5004 -p 1194
+ - Run client:   rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
 
 Actions:
   client  : run as client
