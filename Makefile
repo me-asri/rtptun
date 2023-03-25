@@ -1,4 +1,5 @@
 TARGET := rtptun
+VERSION := $(shell git describe --tags)
 
 SRCDIR := src
 INCDIR := include
@@ -21,6 +22,10 @@ LDFLAGS :=
 
 INC:= -I$(INCDIR)
 LIB:= -lev -lsodium
+
+ifneq ($(VERSION),)
+	CFLAGS += -DBUILD_VERSION=\"$(VERSION)\"
+endif
 
 ifeq ($(DEBUG),1)
 	CFLAGS += $(CFLAGS_DBG)
@@ -68,7 +73,7 @@ $(BIN): $(OBJS)
 
 	$(CC) -o $(BIN) $^ $(LDFLAGS) $(LIB)
 
-	@echo Compiled $(TARGET)
+	@echo Compiled $(TARGET) $(VERSION)
 
 $(OBJDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) $(DEPS)
 	@mkdir -p $(dir $@)

@@ -14,6 +14,15 @@
 #include "server.h"
 #include "client.h"
 
+#ifndef BUILD_VERSION
+#define BUILD_VERSION "undefined version"
+#endif
+#ifdef DEBUG
+#define BUILD_TYPE "debug"
+#else
+#define BUILD_TYPE "release"
+#endif
+
 typedef enum action
 {
     ACT_GEN_KEY,
@@ -23,6 +32,7 @@ typedef enum action
 } action_t;
 
 static void print_usage(const char *prog, FILE *out);
+static void print_version();
 static void argerror(const char *prog, const char *format, ...);
 static action_t parse_action(const char *action);
 
@@ -53,7 +63,7 @@ int main(int argc, char *argv[])
     }
 
     int opt;
-    while ((opt = getopt(argc, argv, "i:l:d:p:k:p:hv")) != -1)
+    while ((opt = getopt(argc, argv, "i:l:d:p:k:p:hVv")) != -1)
     {
         switch (opt)
         {
@@ -77,6 +87,9 @@ int main(int argc, char *argv[])
             break;
         case 'h':
             print_usage(argv[0], stdout);
+            return 0;
+        case 'V':
+            print_version();
             return 0;
         case '?':
             print_usage(argv[0], stderr);
@@ -199,9 +212,27 @@ void print_usage(const char *prog, FILE *out)
                                   "\n"
                                   "Common options:\n"
                                   "  -k : encryption key\n"
-                                  "  -h : show this message\n"
-                                  "  -v : verbose\n";
+                                  "  -h : display help message\n"
+                                  "  -v : verbose\n"
+                                  "  -V : display version information\n";
     fprintf(out, MESSAGE, prog);
+}
+
+void print_version()
+{
+    static const char MESSAGE[] = "rtptun " BUILD_VERSION " (" BUILD_TYPE " build)\n"
+                                  "Copyright (C) 2023 Mehrzad Asri\n"
+                                  "Licensed under MIT\n\n"
+                                  "This is free software; you are free to change and redistribute it.\n"
+                                  "There is NO WARRANTY, to the extent permitted by law.\n\n"
+                                  "Third-party licenses:\n"
+#ifdef __CYGWIN__
+                                  "- Cygwin - LGPLv3 - <https://www.cygwin.com/>\n"
+#endif
+                                  "- libsodium - ISC - <https://doc.libsodium.org/>\n"
+                                  "- libev - BSD-2-Clause - <http://software.schmorp.de/pkg/libev.html>\n"
+                                  "- uthash - BSD revised - <https://troydhanson.github.io/uthash/>";
+    puts(MESSAGE);
 }
 
 void argerror(const char *prog, const char *format, ...)

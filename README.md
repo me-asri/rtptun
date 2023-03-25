@@ -78,11 +78,11 @@ $ make install DEBUG=0 STATIC=1
 
 ## Usage
 ```
-Usage: rtptun <action> <options>
+Usage: ./bin/rel/rtptun <action> <options>
 Example:
- - Generate key: rtptun genkey
- - Run server:   rtptun server -k <KEY> -l 5004 -p 1194
- - Run client:   rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
+ - Generate key: ./bin/rel/rtptun genkey
+ - Run server:   ./bin/rel/rtptun server -k <KEY> -l 5004 -p 1194
+ - Run client:   ./bin/rel/rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
 
 Actions:
   client  : run as client
@@ -103,8 +103,9 @@ Client options:
 
 Common options:
   -k : encryption key
-  -h : show this message
+  -h : display help message
   -v : verbose
+  -V : display version information
 ```
 
 ## Example
