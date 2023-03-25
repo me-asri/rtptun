@@ -1,5 +1,8 @@
 TARGET := rtptun
-VERSION := $(shell git describe --tags)
+
+ifeq ($(VERSION),)
+	VERSION := $(shell git describe --tags)
+endif
 
 SRCDIR := src
 INCDIR := include
@@ -39,7 +42,6 @@ endif
 
 ifeq ($(STATIC),1)
 	LDFLAGS += -static
-	TARGET := $(TARGET)
 endif
 
 ifeq ($(PREFIX),)
