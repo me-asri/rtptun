@@ -83,7 +83,7 @@ $(OBJDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) $(INC)
 
 clean:
-	rm -rf $(OBJDIR) $(BINDIR) rtptun-$(OSNAME)-$(ARCH).zip
+	rm -rf $(OBJDIR) $(BINDIR) $(TARGET)-$(OSNAME)-$(ARCH).zip
 
 install: $(BIN)
 	install -d $(DESTDIR)$(PREFIX)/bin/
@@ -93,4 +93,4 @@ uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/$(TARGET)
 
 archive: $(BIN)
-	zip -j rtptun-$(OSNAME)-$(ARCH).zip ./README.md ./LICENSE $(BIN) $(DLLS)
+	zip -j $(TARGET)-$(OSNAME)-$(ARCH).zip ./README.md ./LICENSE $(BIN) $(DLLS)
