@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
         config_t cfg;
         if (config_open(&cfg, config_file) != 0)
-            log_f("Failed top open config file");
+            log_f("Failed to open config file");
 
         if (config_has_section(&cfg, "client") && config_has_section(&cfg, "server"))
             log_f("Config file may only contain either a 'client' or a 'server' section");
