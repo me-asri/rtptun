@@ -1,0 +1,13 @@
+[server]
+; Listen address for rtptun clients
+listen-addr = "0.0.0.0"
+; Listen port
+listen-port = 5004
+
+; Destination address for remote server
+dest-addr = "127.0.0.1"
+; Destination port
+dest-port = 1194
+
+; Encryption key
+key = "kXQ56aVLSOg4T/l2jOErSQeodzlyZ3TYQ9WfRfKY4vc="

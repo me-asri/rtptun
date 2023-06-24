@@ -1,0 +1,13 @@
+[client]
+; Listen address for local clients
+local-addr = "127.0.0.1"
+; Local port
+local-port = 1194
+
+; rtptun server address
+server-addr = "203.0.113.1"
+; rtptun server port
+server-port = 5004
+
+; Encryption key
+key = "kXQ56aVLSOg4T/l2jOErSQeodzlyZ3TYQ9WfRfKY4vc="

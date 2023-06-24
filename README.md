@@ -81,9 +81,10 @@ $ make install DEBUG=0 STATIC=1
 ```
 Usage: rtptun <action> <options>
 Example:
- - Generate key: rtptun genkey
- - Run server:   rtptun server -k <KEY> -l 5004 -p 1194
- - Run client:   rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
+ - Generate key:     rtptun genkey
+ - Run server:       rtptun server -k <KEY> -l 5004 -p 1194
+ - Run client:       rtptun client -k <KEY> -l 1194 -d 192.0.2.1 -p 5004
+ - Load config file: rtptun -f /etc/rtptun.conf
 
 Actions:
   client  : run as client
@@ -95,15 +96,17 @@ Server options:
   -l : listen port (default: 5004)
   -d : destination address (default: 127.0.0.1)
   -p : destination port
+  -k : encryption key
 
 Client options:
-  -i : listen address (default: 127.0.0.1)
-  -l : listen port
+  -i : local address (default: 127.0.0.1)
+  -l : local port
   -d : server address
   -p : server port (default: 5004)
-
-Common options:
   -k : encryption key
+
+Program options:
+  -f : Load configuration file
   -h : display help message
   -v : verbose
   -V : display version information
