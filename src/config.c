@@ -30,6 +30,8 @@ int config_open(config_t *config, const char *path)
     FILE *file = fopen(path, "r");
     if (!file)
     {
+        log_e("Failed to open file");
+
         result = CONFIG_IO_ERROR;
         goto error;
     }
@@ -39,6 +41,8 @@ int config_open(config_t *config, const char *path)
     // Reserve first section for global properties
     if (!config_add_section(config, NULL))
     {
+        log_e("Failed to create global section");
+
         result = CONFIG_SYS_ERROR;
         goto sect_error;
     }
@@ -50,13 +54,6 @@ int config_open(config_t *config, const char *path)
     config_section_t *last_section = config->first_section;
     while ((chars = getline(&buffer, &buffer_len, file)) != -1)
     {
-        // getline failure
-        if (errno != 0)
-        {
-            result = CONFIG_IO_ERROR;
-            goto read_error;
-        }
-
         if (buffer[chars - 1] == '\n')
         {
             buffer[chars - 1] = '\0';
@@ -130,6 +127,13 @@ int config_open(config_t *config, const char *path)
 
         result = CONFIG_INVALID_ERROR;
         goto parse_error;
+    }
+    if (chars == -1 && (errno == EINVAL || errno == ENOMEM))
+    {
+        elog_e("getline() failed");
+
+        result = CONFIG_IO_ERROR;
+        goto read_error;
     }
 
     free(buffer);
