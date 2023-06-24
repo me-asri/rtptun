@@ -61,7 +61,7 @@ ifeq ($(OS),Windows_NT)
 	BIN := $(BIN).exe
 	DLLS = $(shell ldd $(BIN) | grep -oP '/usr/bin/.*.dll')
 else
-	OSNAME := $(shell uname -o | tr A-Z a-z)
+	OSNAME := $(shell uname -s | tr A-Z a-z)
 
 	DLLS :=
 endif
