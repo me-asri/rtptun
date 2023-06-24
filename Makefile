@@ -93,4 +93,4 @@ uninstall:
 	rm $(DESTDIR)$(PREFIX)/bin/$(TARGET)
 
 archive: $(BIN)
-	zip -j $(TARGET)-$(OSNAME)-$(ARCH).zip ./README.md ./LICENSE $(BIN) $(DLLS)
+	zip -j $(TARGET)-$(OSNAME)-$(ARCH).zip ./README.md ./LICENSE ./*.dist $(BIN) $(DLLS)
