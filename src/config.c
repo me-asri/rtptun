@@ -315,14 +315,14 @@ config_property_t *config_add_property(config_t *config, config_section_t *secti
 
 char *str_trim(char *str)
 {
-    while (isspace(*str))
+    while (isspace((unsigned char)*str))
         str++;
 
     if (*str == '\0')
         return str;
 
     char *end = str + strlen(str) - 1;
-    while (end > str && isspace(*end))
+    while (end > str && isspace((unsigned char)*end))
         end--;
     end[1] = '\0';
 
