@@ -46,6 +46,10 @@ typedef struct rtp_dest
     UT_hash_handle hh;
 } rtp_dest_t;
 
+typedef struct rtp_socket rtp_socket_t;
+typedef void (*rtp_recv_callback_t)(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc);
+typedef void (*rtp_send_callback_t)(rtp_socket_t *socket, ssize_t sent);
+
 typedef struct rtp_socket
 {
     udp_socket_t *udp_sock;
@@ -53,8 +57,8 @@ typedef struct rtp_socket
 
     chacha_cipher_t cipher;
 
-    void *recv_cb; // rtp_recv_callback_t
-    void *send_cb; // rtp_recv_callback_t
+    rtp_recv_callback_t recv_cb;
+    rtp_send_callback_t send_cb;
     void *user_data;
 
     unsigned int rand_seed;
@@ -64,26 +68,16 @@ typedef struct rtp_socket
     struct rtp_dest *rtp_dest_map;
 } rtp_socket_t;
 
-typedef void (*rtp_recv_callback_t)(rtp_socket_t *socket, unsigned char *data, ssize_t data_len, ssrc_t ssrc);
-typedef void (*rtp_send_callback_t)(rtp_socket_t *socket, ssize_t sent);
-
 rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char *port, const char *key,
                           rtp_recv_callback_t recv_callback, rtp_send_callback_t send_callback, void *user_data);
 rtp_socket_t *rtp_listen(struct ev_loop *loop, const char *address, const char *port, const char *key,
                          rtp_recv_callback_t recv_callback, rtp_send_callback_t send_callback, void *user_data);
-void rtp_free(rtp_socket_t *socket);
+void rtp_destroy(rtp_socket_t *socket);
 
 int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, ssrc_t ssrc);
 
 int rtp_close_stream(rtp_socket_t *socket, ssrc_t ssrc);
 
 ssrc_t rtp_random_ssrc(rtp_socket_t *socket);
-void rtp_gen_key();
-
-rtp_dest_t *rtp_dest_find(rtp_socket_t *socket, ssrc_t ssrc);
-rtp_dest_t *rtp_dest_set(rtp_socket_t *socket, ssrc_t ssrc, struct sockaddr_storage *address,
-                         socklen_t address_len, uint8_t payload_type);
-int rtp_dest_del(rtp_socket_t *socket, ssrc_t ssrc);
-void rtp_dest_free(rtp_socket_t *socket);
 
 #endif

@@ -57,7 +57,7 @@ error:
     if (server)
     {
         if (server->local_rtp)
-            rtp_free(server->local_rtp);
+            rtp_destroy(server->local_rtp);
 
         free(server);
     }
@@ -67,7 +67,7 @@ error:
 
 void rtptun_server_free(rtptun_server_t *server)
 {
-    rtp_free(server->local_rtp);
+    rtp_destroy(server->local_rtp);
 
     free(server->dest_addr);
     free(server->dest_port);
@@ -110,7 +110,7 @@ void info_map_free(rtptun_rtp_info_t **hash)
     rtptun_rtp_info_t *current, *tmp;
     HASH_ITER(hh, *hash, current, tmp)
     {
-        udp_free(current->remote_udp);
+        udp_destroy(current->remote_udp);
 
         HASH_DEL(*hash, current);
         free(current);
@@ -173,7 +173,7 @@ void timeout_cb(EV_P_ ev_timer *timer, int revents)
         else
         {
             log_d("Client with SSRC #%d timed out", current->ssrc);
-            udp_free(current->remote_udp);
+            udp_destroy(current->remote_udp);
 
             HASH_DEL(server->info_map, current);
             free(current);

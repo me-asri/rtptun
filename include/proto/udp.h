@@ -19,6 +19,11 @@ typedef struct udp_buffer
     socklen_t saddr_len;
 } udp_buffer_t;
 
+typedef struct udp_socket udp_socket_t;
+typedef void (*udp_send_callback_t)(udp_socket_t *socket, ssize_t sent);
+typedef void (*udp_recv_callback_t)(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
+                                    struct sockaddr_storage *address, socklen_t addr_len);
+
 typedef struct udp_socket
 {
     int fd;
@@ -34,20 +39,16 @@ typedef struct udp_socket
 
     udp_buffer_t out_buffer;
 
-    void *send_callback; // udp_send_callback_t
-    void *recv_callback; // udp_recv_callback_t
+    udp_send_callback_t send_callback;
+    udp_recv_callback_t recv_callback;
     void *user_data;
 } udp_socket_t;
-
-typedef void (*udp_send_callback_t)(udp_socket_t *socket, ssize_t sent);
-typedef void (*udp_recv_callback_t)(udp_socket_t *socket, unsigned char *data, ssize_t data_len,
-                                    struct sockaddr_storage *address, socklen_t addr_len);
 
 udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char *port,
                           udp_recv_callback_t recv_callback, udp_send_callback_t send_callback, void *user_data);
 udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *port,
                          udp_recv_callback_t recv_callback, udp_send_callback_t send_callback, void *user_data);
-void udp_free(udp_socket_t *socket);
+void udp_destroy(udp_socket_t *socket);
 
 int udp_send(udp_socket_t *socket, const unsigned char *data, size_t data_len);
 int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,

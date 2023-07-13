@@ -247,8 +247,10 @@ int start_server(const char *listen_addr, const char *listen_port,
 
 int gen_key()
 {
-    char *key = chacha_gen_key();
-    if (!key)
+    char *key = NULL;
+    size_t buflen = 0;
+
+    if (chacha_gen_key(&key, &buflen) != CHACHA_RET_SUCCESS)
         return 1;
 
     puts(key);

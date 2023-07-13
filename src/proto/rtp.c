@@ -21,6 +21,12 @@ static void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t
                               struct sockaddr_storage *address, socklen_t addrlen);
 static void udp_send_callback(udp_socket_t *socket, ssize_t sent);
 
+static rtp_dest_t *rtp_dest_find(rtp_socket_t *socket, ssrc_t ssrc);
+static rtp_dest_t *rtp_dest_set(rtp_socket_t *socket, ssrc_t ssrc, struct sockaddr_storage *address,
+                                socklen_t address_len, uint8_t payload_type);
+static int rtp_dest_del(rtp_socket_t *socket, ssrc_t ssrc);
+static void rtp_dest_free(rtp_socket_t *socket);
+
 rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char *port, const char *key,
                           rtp_recv_callback_t recv_callback, rtp_send_callback_t send_callback, void *user_data)
 {
@@ -36,7 +42,7 @@ rtp_socket_t *rtp_connect(struct ev_loop *loop, const char *address, const char 
     sock->rand_seed = time(NULL);
     sock->seq_num = rand_r(&sock->rand_seed);
 
-    if (chacha_init(&sock->cipher, key) != 0)
+    if (chacha_init(&sock->cipher, key) != CHACHA_RET_SUCCESS)
     {
         log_e("Failed to initialize cipher");
         goto error;
@@ -60,7 +66,7 @@ error:
     if (sock)
     {
         if (sock->udp_sock)
-            udp_free(sock->udp_sock);
+            udp_destroy(sock->udp_sock);
         free(sock);
     }
 
@@ -81,7 +87,7 @@ rtp_socket_t *rtp_listen(struct ev_loop *loop, const char *address, const char *
     sock->rand_seed = time(NULL);
     sock->seq_num = rand_r(&sock->rand_seed);
 
-    if (chacha_init(&sock->cipher, key) != 0)
+    if (chacha_init(&sock->cipher, key) != CHACHA_RET_SUCCESS)
     {
         log_e("Failed to initialize cipher");
         goto error;
@@ -105,16 +111,16 @@ error:
     if (sock)
     {
         if (sock->udp_sock)
-            udp_free(sock->udp_sock);
+            udp_destroy(sock->udp_sock);
         free(sock);
     }
 
     return NULL;
 }
 
-void rtp_free(rtp_socket_t *socket)
+void rtp_destroy(rtp_socket_t *socket)
 {
-    udp_free(socket->udp_sock);
+    udp_destroy(socket->udp_sock);
     rtp_dest_free(socket);
 
     free(socket);
@@ -124,7 +130,7 @@ int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, s
 {
     if (data_len > RTP_MAX_PAYLOAD_SIZE)
     {
-        log_e("Data length exceeds maximum UDP buffer size");
+        log_e("Maximum UDP buffer size exceeded");
         return -1;
     }
 
@@ -140,7 +146,7 @@ int rtp_send(rtp_socket_t *socket, const unsigned char *data, size_t data_len, s
     if (chacha_encrypt(&socket->cipher, data, data_len,
                        payload,
                        &payload[data_len + CHACHA_NONCE_LEN],
-                       &payload[data_len]) != 0)
+                       &payload[data_len]) != CHACHA_RET_SUCCESS)
     {
         log_e("Failed to encrypt data");
         return -1;
@@ -294,7 +300,7 @@ void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_l
     if (chacha_decrypt(&rtp_sock->cipher, cipher, payload_len,
                        &data[data_len - CHACHA_MAC_LEN],
                        &data[data_len - (CHACHA_NONCE_LEN + CHACHA_MAC_LEN)],
-                       dec_payload) != 0)
+                       dec_payload) != CHACHA_RET_SUCCESS)
     {
         log_e("Failed to decrypt data");
         return;
@@ -308,7 +314,7 @@ void udp_recv_callback(udp_socket_t *socket, unsigned char *data, ssize_t data_l
     }
 
     if (rtp_sock->recv_cb)
-        ((rtp_recv_callback_t)rtp_sock->recv_cb)(rtp_sock, dec_payload, payload_len, ssrc);
+        (rtp_sock->recv_cb)(rtp_sock, dec_payload, payload_len, ssrc);
 }
 
 void udp_send_callback(udp_socket_t *socket, ssize_t sent)
@@ -316,5 +322,5 @@ void udp_send_callback(udp_socket_t *socket, ssize_t sent)
     rtp_socket_t *rtp_sock = socket->user_data;
 
     if (rtp_sock->send_cb)
-        ((rtp_send_callback_t)rtp_sock->send_cb)(rtp_sock, sent - sizeof(rtphdr_t));
+        (rtp_sock->send_cb)(rtp_sock, sent - sizeof(rtphdr_t));
 }

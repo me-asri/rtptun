@@ -64,10 +64,10 @@ error:
     {
         if (client->udp_local)
         {
-            udp_free(client->udp_local);
+            udp_destroy(client->udp_local);
 
             if (client->rtp_remote)
-                rtp_free(client->rtp_remote);
+                rtp_destroy(client->rtp_remote);
         }
 
         free(client);
@@ -82,8 +82,8 @@ void rtptun_client_free(rtptun_client_t *client)
 
     info_map_free(client);
 
-    udp_free(client->udp_local);
-    rtp_free(client->rtp_remote);
+    udp_destroy(client->udp_local);
+    rtp_destroy(client->rtp_remote);
 
     free(client);
 }

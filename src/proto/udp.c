@@ -16,9 +16,10 @@
 
 #include "log.h"
 
-static int set_sock_nonblocking(int fd);
+static int socket_set_nonblock(int fd);
+static int socket_parse_addr(const char *address, const char *port, struct sockaddr_storage *saddress, socklen_t *saddress_len);
+
 static void ev_callback(EV_P_ ev_io *io, int events);
-static int parse_str_addr(const char *address, const char *port, struct sockaddr_storage *saddress, socklen_t *saddress_len);
 
 udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char *port,
                           udp_recv_callback_t recv_callback, udp_send_callback_t send_callback, void *user_data)
@@ -55,7 +56,7 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
     int result = getaddrinfo(address, port, &hints, &res);
     if (result != 0)
     {
-        log_e("Failed to connect to %s:%s (%s)", address, port, gai_strerror(result));
+        log_e("Failed to resolve %s:%s (%s)", address, port, gai_strerror(result));
         if (result == EAI_SYSTEM)
             elog_e("getaddrinfo() failed");
         goto error;
@@ -73,9 +74,9 @@ udp_socket_t *udp_connect(struct ev_loop *loop, const char *address, const char 
     sock->remote_address_len = res[0].ai_addrlen;
     memcpy(&sock->remote_address, res[0].ai_addr, res[0].ai_addrlen);
 
-    if (set_sock_nonblocking(sock->fd) != 0)
+    if (socket_set_nonblock(sock->fd) != 0)
     {
-        elog_e("Failed to switch socket to non-blocking mode");
+        elog_e("Failed to make socket non-blocking");
         goto error;
     }
 
@@ -110,7 +111,7 @@ udp_socket_t *udp_listen(struct ev_loop *loop, const char *address, const char *
     sock->remote_address_len = 0;
 
     sock->local_address_len = sizeof(sock->local_address);
-    if (parse_str_addr(address, port, &sock->local_address, &sock->local_address_len) != 0)
+    if (socket_parse_addr(address, port, &sock->local_address, &sock->local_address_len) != 0)
     {
         log_e("Failed to parse address");
         goto error;
@@ -146,7 +147,7 @@ error:
     return NULL;
 }
 
-void udp_free(udp_socket_t *socket)
+void udp_destroy(udp_socket_t *socket)
 {
     ev_io_stop(socket->loop, &socket->ev);
 
@@ -171,7 +172,7 @@ int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
 {
     if (data_len > UDP_BUFFER_SIZE)
     {
-        log_e("Data length exceeds maximum UDP buffer size");
+        log_e("Maximum UDP buffer size exceeded");
         return -1;
     }
 
@@ -181,7 +182,7 @@ int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
             if (socket->out_buffer.data_len > 0)
-                log_w("UDP out buffer overrun");
+                log_w("Send buffer overrun");
 
             memcpy(&socket->out_buffer.saddr, address, addr_len);
             socket->out_buffer.saddr_len = addr_len;
@@ -202,7 +203,20 @@ int udp_sendto(udp_socket_t *socket, const unsigned char *data, size_t data_len,
     return 0;
 }
 
-int parse_str_addr(const char *address, const char *port, struct sockaddr_storage *saddress, socklen_t *saddress_len)
+int socket_set_nonblock(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0)
+        return -1;
+
+    flags &= O_NONBLOCK;
+    if (fcntl(fd, F_SETFL, flags) != 0)
+        return -1;
+
+    return 0;
+}
+
+int socket_parse_addr(const char *address, const char *port, struct sockaddr_storage *saddress, socklen_t *saddress_len)
 {
     char *endptr;
     long port_num = strtol(port, &endptr, 10);
@@ -252,7 +266,7 @@ void ev_callback(EV_P_ ev_io *io, int events)
         }
 
         if (sock->send_callback)
-            ((udp_send_callback_t)sock->send_callback)(sock, sent);
+            sock->send_callback(sock, sent);
     }
     else if (events & EV_READ)
     {
@@ -273,19 +287,6 @@ void ev_callback(EV_P_ ev_io *io, int events)
         }
 
         if (sock->recv_callback)
-            ((udp_recv_callback_t)sock->recv_callback)(sock, buffer, nread, &saddr, addr_len);
+            sock->recv_callback(sock, buffer, nread, &saddr, addr_len);
     }
-}
-
-int set_sock_nonblocking(int fd)
-{
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0)
-        return -1;
-
-    flags &= O_NONBLOCK;
-    if (fcntl(fd, F_SETFL, flags) != 0)
-        return -1;
-
-    return 0;
 }
