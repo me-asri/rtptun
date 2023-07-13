@@ -1,7 +1,7 @@
 #ifndef RTPTUN_PROTO_UDP_H
 #define RTPTUN_PROTO_UDP_H
 
-#define UDP_BUFFER_SIZE 4096
+#define UDP_BUFFER_SIZE 65536
 
 #include <stddef.h>
 
