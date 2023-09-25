@@ -52,6 +52,8 @@ int config_open(config_t *config, const char *path)
     ssize_t chars = 0;
 
     config_section_t *last_section = config->first_section;
+
+    errno = 0;
     while ((chars = getline(&buffer, &buffer_len, file)) != -1)
     {
         if (buffer[chars - 1] == '\n')
